@@ -67,15 +67,36 @@ const showPipelineChip = computed(() => isStreaming.value && !!props.pipelineHin
   margin: 8px 10px 2px;
   padding: 10px 14px 12px;
   border-radius: 10px;
-  background: rgba(248, 250, 252, 0.84);
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border-strong);
   position: relative;
   overflow: hidden;
 }
 
 .live-caption--analyzing {
-  background: rgba(238, 242, 255, 0.9);
-  border-color: rgba(99, 102, 241, 0.18);
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.22);
+}
+
+[data-theme="dark"] .live-caption {
+  background: rgba(28, 25, 23, 0.72);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .live-caption--analyzing {
+  background: rgba(79, 70, 229, 0.16);
+  border-color: rgba(129, 140, 248, 0.32);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .live-caption {
+    background: rgba(28, 25, 23, 0.72);
+    border-color: var(--color-border);
+  }
+  :root:not([data-theme="light"]) .live-caption--analyzing {
+    background: rgba(79, 70, 229, 0.16);
+    border-color: rgba(129, 140, 248, 0.32);
+  }
 }
 
 .caption-meta {
@@ -95,36 +116,33 @@ const showPipelineChip = computed(() => isStreaming.value && !!props.pipelineHin
 
 .caption-dot--streaming {
   background: #f43f5e;
-  animation: dot-pulse 1.6s ease-out infinite;
 }
 
 .caption-dot--analyzing {
   background: #6366f1;
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.18);
-  animation: dot-soft-pulse 1.4s ease-in-out infinite;
-}
-
-@keyframes dot-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45); }
-  70% { box-shadow: 0 0 0 7px rgba(239, 68, 68, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-}
-
-@keyframes dot-soft-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.55; transform: scale(0.88); }
 }
 
 .caption-tag {
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.04em;
-  color: #64748b;
+  color: var(--color-text-secondary);
   flex-shrink: 0;
 }
 
 .live-caption--analyzing .caption-tag {
-  color: #4338ca;
+  color: var(--color-accent-text);
+}
+
+[data-theme="dark"] .live-caption--analyzing .caption-tag {
+  color: #a5b4fc;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .live-caption--analyzing .caption-tag {
+    color: #a5b4fc;
+  }
 }
 
 /* Right-side pipeline chip — communicates parallel backstage analysis. */
@@ -135,7 +153,7 @@ const showPipelineChip = computed(() => isStreaming.value && !!props.pipelineHin
   margin-left: auto;
   padding: 2px 8px 2px 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--color-surface);
   border: 1px solid rgba(99, 102, 241, 0.16);
   color: #4f46e5;
   font-size: 10px;
@@ -143,6 +161,20 @@ const showPipelineChip = computed(() => isStreaming.value && !!props.pipelineHin
   letter-spacing: 0.02em;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+[data-theme="dark"] .pipeline-chip {
+  background: rgba(67, 56, 202, 0.22);
+  border-color: rgba(165, 180, 252, 0.35);
+  color: #c7d2fe;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .pipeline-chip {
+    background: rgba(67, 56, 202, 0.22);
+    border-color: rgba(165, 180, 252, 0.35);
+    color: #c7d2fe;
+  }
 }
 
 .pipeline-chip-spinner {
@@ -166,7 +198,7 @@ const showPipelineChip = computed(() => isStreaming.value && !!props.pipelineHin
   margin: 0;
   font-size: 13px;
   line-height: 1.65;
-  color: #475569;
+  color: var(--color-text-secondary);
   font-style: italic;
   letter-spacing: 0.005em;
   min-height: 1.65em;
@@ -176,6 +208,18 @@ const showPipelineChip = computed(() => isStreaming.value && !!props.pipelineHin
   color: #312e81;
   font-style: normal;
   opacity: 0.92;
+}
+
+[data-theme="dark"] .live-caption--analyzing .caption-text {
+  color: #e0e7ff;
+  opacity: 1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .live-caption--analyzing .caption-text {
+    color: #e0e7ff;
+    opacity: 1;
+  }
 }
 
 .caption-content {

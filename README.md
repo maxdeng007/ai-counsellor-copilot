@@ -1,137 +1,176 @@
-# Counsellor Meeting Demo (v3)
+# AI Record · Counsellor Copilot
 
-A polished, fully-mocked demo of an **AI Financial Counsellor Meeting Assistant**.
+![Counsellor Copilot — live session home (EN): hero, ready state, mic, AI notes placeholder](docs/images/readme-screenshot.png)
 
-v3 mirrors how the backend actually works: the audio stream is broken into
-paragraph-sized **chunks** (silence-bounded by VAD), each chunk is sent to the
-backend for ASR + speaker diarization, and the UI renders three things:
+A **Vue 3** web app for **AI-assisted financial counselling meetings**: live or demo transcript, speaker diarization, client linking, and meeting summaries. A **FastAPI** service (`diarization-service`) connects to **Volc / Doubao** streaming ASR and optional **OpenAI**-based summarization.
 
-1. A **live caption** while a chunk is being captured — soft gray italic, with
-   a `· 实时识别 / · Live transcribing` tag and a blinking cursor.
-2. An **inter-chunk pill** (`正在分析这一段… / Analyzing this segment…`) while
-   that chunk is being processed by the backend.
-3. **Diarized speaker bubbles** when the chunk arrives, sliding in with a
-   gentle stagger. Each speaker is anonymous (`说话人 1/2/3 · Speaker 1/2/3`)
-   until the user links a client.
+---
 
-This is the honest version of the live story: the frontend shows what was
-heard (the caption), and the backend's diarization decides who said what
-once the chunk is closed.
+## What’s in the repo
 
-## End-to-end flow
+| Area | Role |
+|------|------|
+| `src/` | Vue app — Live transcript, Demo scripts, voiceprint settings |
+| `diarization-service/` | FastAPI API — ASR, voiceprint endpoints, summarize / entity extraction |
+| `docs/launch.md` | Step-by-step local backend + frontend launch |
+| `docs/demo-mode.md` | Long-form **Demo mode** UX narrative & architecture pointers (v3) |
+| `.env.example` | Frontend env template → copy to **`.env.local`** |
+| `diarization-service/.env.example` | Backend env template → copy to **`diarization-service/.env`** |
 
-```
-idle → recording → processing → reviewing → linking → summarized
-```
+**Secrets:** Never commit real keys. Use `.env.local` (frontend) and `diarization-service/.env` (backend). Both are gitignored.
 
-1. **Idle** — neutral header (date only, no client name). Single transcript
-   card with the mic dock at the bottom.
-2. **Recording** — for each chunk: a soft gray live caption block streams the
-   raw transcribed text word-by-word; a brief `正在分析这一段…` pill shows
-   while the backend processes; then the caption fades out and the chunk's
-   diarized bubbles appear, staggered, with anonymous labels (`说话人 1/2/3`).
-   The next chunk starts streaming immediately afterwards. Keep recording —
-   chunks keep arriving until you stop.
-3. **Processing** — Stop pressed. Any in-flight chunk is flushed (a final
-   `正在分析…` pill, then bubbles), the dock shows a slim progress bar with a
-   "Finalizing transcript" tag, and a `终稿已就绪 / Final transcript ready`
-   toast appears.
-4. **Reviewing** — bubbles still anonymous. The counsellor can rename a
-   speaker if they want, or just continue.
-5. **Linking** — required, non-dismissible modal. Detected client is
-   prefilled. A small note inside the modal explains that the N detected
-   speakers will be auto-attributed once the link is confirmed.
-6. **After link** — every bubble flips from `说话人 N` to its real role
-   (`理财顾问 / 客户·王女士 / 李太太`) with a name-flip animation. Header
-   swaps to the linked client. Summary panel reveals client profile, asset
-   snapshot, risk profile, topics, action items, and follow-up email draft.
+---
 
-## Demo scripts
+## Features
 
-- **Retirement planning** — 2 speakers, 3 chunks. Counsellor and Mrs. Wang
-  alternate cleanly; bubbles flip to `理财顾问` / `客户·王女士` after link.
-- **Family portfolio review** — 3 speakers, 3 chunks. Mrs. Li (`说话人 3`)
-  emerges in the very first chunk, demonstrating that anonymous diarization
-  is not capped at 2. After link, bubbles become `理财顾问` / `李先生` /
-  `李太太`.
+- **Live mode** — Browser microphone → chunked upload → Volc ASR + incremental/final transcript; live caption + speaker bubbles; optional voiceprint-assisted speaker consistency.
+- **Demo mode** — Fully mocked scripts (no mic): scripted chunks, simulated latency, CRM linking, animated summary — useful for UX demos without cloud keys.
+- **Voiceprint settings** — Enroll/list/delete profiles against the backend registry (when configured).
+- **Summaries & entities** — Backend routes for meeting summary and entity extraction when OpenAI (or configured provider) env vars are set.
 
-Switch between scripts via the `Switch Demo Script` pill in the header.
+---
 
 ## Tech stack
 
-- Vue 3 + Vite
-- Tailwind CSS v4 (via `@tailwindcss/vite`)
-- Vant 4 (Icon + showToast)
-- animate.css
+- **Frontend:** Vue 3, Vite 8, Tailwind CSS v4, Vant 4, animate.css  
+- **Backend:** Python 3, FastAPI, Uvicorn  
+- **Integrations:** Volc streaming ASR (WebSocket), OpenAI-compatible summarization (optional)
 
-## Run locally
+---
+
+## Prerequisites
+
+- **Node.js** 18+ (for `npm run dev` / `npm run build`)
+- **Python** 3.11+ recommended for `diarization-service`
+- Volc ASR credentials and (optional) OpenAI API key for full pipeline
+
+---
+
+## Environment variables (for anyone cloning this repo)
+
+**Do not put real API keys in Git.** The repo only ships **`.env.example`** files; you copy them to **ignored** local files and fill in your own values.
+
+### Frontend (Vite) — repo root
+
+1. Copy the template:  
+   `cp .env.example .env.local`
+2. Edit **`.env.local`**. Vite only exposes variables that start with **`VITE_`** to the browser — never put Volc or OpenAI **secret** keys in a `VITE_*` var (those would ship to every user’s browser).
+
+| Variable | Purpose |
+|----------|---------|
+| `VITE_DIARIZATION_API_BASE` | Base URL of the FastAPI service (e.g. `http://localhost:8090` locally, or `https://api.yourdomain.com` in production). |
+| `VITE_USE_VOLC` | `true` / `false` — use the live Volc client pipeline in **Live** mode. |
+| `VITE_SUMMARY_API_BASE` | Optional override if summaries hit a different host (defaults to `VITE_DIARIZATION_API_BASE`). |
+| `VITE_CHUNK_MS`, `VITE_*` timing | Optional tuning; see comments in **`.env.example`**. |
+
+All options and comments: **`.env.example`**.
+
+### Backend (FastAPI) — `diarization-service/`
+
+1. Copy:  
+   `cp diarization-service/.env.example diarization-service/.env`
+2. Edit **`diarization-service/.env`** with your real credentials (this file is **gitignored**).
+
+| Variable | Purpose |
+|----------|---------|
+| `VOLC_APP_ID`, `VOLC_ACCESS_TOKEN`, `VOLC_SECRET_KEY` | Volc / Doubao ASR (required for **Live** ASR). |
+| `VOLC_RESOURCE_ID`, `VOLC_WS_URL` | Model / WebSocket endpoint (defaults in `.env.example`). |
+| `OPENAI_API_KEY` | Optional — summaries / entities when using OpenAI (or compatible provider). |
+| `SUMMARY_PROVIDER`, `SUMMARY_MODEL`, `OPENAI_BASE_URL` | Optional summary provider configuration. |
+
+More detail (venv quirks, run commands): **`docs/launch.md`** and **`diarization-service/README.md`**.
+
+### Demo mode without cloud keys
+
+Switch the app to **Demo** in the top bar: no Volc/OpenAI keys required — scripts are mocked.
+
+---
+
+## Local development
+
+### 1) Frontend
 
 ```bash
 npm install
+cp .env.example .env.local   # optional; edit API base URL & flags
 npm run dev
 ```
 
-## Build
+Important frontend env vars (see `.env.example`):
+
+- `VITE_DIARIZATION_API_BASE` — default `http://localhost:8090`
+- `VITE_USE_VOLC` — toggle Volc pipeline on the client when testing
+
+### 2) Backend
+
+See **`docs/launch.md`** for interpreter/venv notes and full env list. Short version:
 
 ```bash
-npm run build
-npm run preview
+cd diarization-service
+python3 -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+# Create diarization-service/.env with VOLC_* and optional OPENAI_*
+set -a && source .env && set +a   # Unix; on Windows set vars manually or use dotenv
+uvicorn app.main:app --host 0.0.0.0 --port 8090 --reload
 ```
 
-## What is mocked vs real
+### 3) Switch modes in the app
 
-| Feature | This demo |
-| --- | --- |
-| Audio recording | Mocked (no microphone access) |
-| Live caption streaming | Mocked (each chunk's raw text is typed into the caption block before being diarized) |
-| Chunked ASR + diarization | Mocked (each script ships pre-grouped `chunks` with `processingMs` per chunk for the simulated backend latency) |
-| Anonymous → real speaker flip | Real CSS animation triggered by data update on link |
-| Cross-chunk speaker consistency | Mocked (segments carry stable `speakerId`s; in production this requires speaker-embedding matching across chunks) |
-| AI summary | Mocked (pre-built per script, revealed after ~2.6s shimmer post-link) |
-| Client extraction & matching | Mocked (each script has a fixed `extractedClient` + match against a fake CRM list of 5 clients) |
-| ClientLinker modal | Real component logic — non-dismissible, two paths (link existing / create new) |
-| Save | Real `localStorage` only |
-| Copy email | Real clipboard API |
-| Locale | Real (zh-CN / en) |
+Use the top bar to choose **Live** (real pipeline) or **Demo** (mock). Optional **Voiceprint** screen for profile management.
 
-## Next iteration (intentionally NOT built yet)
+---
 
-- Real microphone capture (`MediaRecorder` + chunked audio upload at VAD
-  silence boundaries)
-- Real chunk-level ASR (Whisper / Paraformer / cloud)
-- Real speaker diarization with cross-chunk speaker-embedding matching
-  (pyannote / commercial) so 说话人 N stays the same person across chunks
-- Real entity extraction and CRM matching
-- **Compliance / consent UI** before recording (audit trail, residency,
-  retention)
-- Multi-meeting history view
-- Real email send + CRM write-back
-- Speaker merge/split affordances in reviewing (rename only, for now)
-- Permission control and audit trail
+## Production build (sanity check)
 
-## Architecture pointers
+```bash
+npm run build    # output in dist/
+npm run preview  # local smoke-test of the built assets
+```
 
-- `src/data/mockDialog.js` — scripts, mock CRM, helpers. Each script carries
-  flat `segments` (with a single `speakerId` per turn) and a `chunks` array
-  grouping segment indices into paragraphs with per-chunk `processingMs`
-  latency. `anonymousSpeakerLabel(n, locale)` produces the temporary
-  `说话人 N / Speaker N` label used during recording.
-- `src/views/CounsellorMeeting.vue` — owns the state machine and the
-  chunked playback driver: stream caption → analyzing pill → emit bubbles →
-  next chunk. Stop mid-chunk flushes the in-flight paragraph cleanly.
-  Linking triggers `applyRealNames()` which flips all speaker labels at
-  once — the bubble watcher animates the swap.
-- `src/components/LiveCaption.vue` — soft gray italic streaming caption
-  block with `· 实时识别` tag and blinking cursor; switches to a blue
-  shimmering `正在分析这一段…` pill while the backend processes; fades out
-  before the chunk's bubbles land.
-- `src/components/SpeakerBubble.vue` — entrance animation with parent-
-  supplied stagger delay (per-chunk). The name-flip animation runs on every
-  visible bubble when the parent renames the speaker (anonymous → real).
-- `src/components/RecordButton.vue` — `inline` variant (no card chrome) for
-  embedding inside the transcript card; `processing` state with a slim
-  progress bar for the post-stop tail.
-- `src/components/ClientLinker.vue` — non-dismissible modal, two tabs
-  (existing / new), required step to reach the summary. Renders a small
-  `N speakers detected — roles will be assigned automatically after linking`
-  hint.
+For deployment, set `VITE_DIARIZATION_API_BASE` to your **public API origin** (including `https://`) before running `npm run build`.
+
+---
+
+## Deployment (high level)
+
+Typical patterns:
+
+1. **Split:** Static frontend on **Vercel** (or any static host) + FastAPI on **Render**, **Railway**, **Fly.io**, or a **VPS** (Tencent / Alibaba ECS, etc.). Point `VITE_DIARIZATION_API_BASE` at the API URL.
+2. **Single VPS:** Nginx serves `dist/` and reverse-proxies `/api` and `/healthz` to Uvicorn on `127.0.0.1:8090`.
+
+Free-tier PaaS APIs may **sleep** when idle (cold start); a small paid VPS stays warm if you need always-on behaviour.
+
+---
+
+## API surface (backend)
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/healthz` | Liveness |
+| POST | `/api/process-voice-volc` | Multipart audio chunk (Volc) |
+| POST | `/api/process-voice-volc-preview` | Preview caption |
+| GET/POST/DELETE | `/api/voiceprint/...` | Voiceprint registry |
+| POST | `/api/summarize-meeting` | Meeting summary |
+| POST | `/api/extract-entities` | Entity extraction |
+
+Details: `diarization-service/README.md` and `app/main.py`.
+
+---
+
+## Verification (last checked)
+
+- `npm run build` completes successfully.
+- `from app.main import app` loads in a clean venv with `requirements.txt`.
+
+---
+
+## Demo mode (full spec)
+
+For the full **v3** product walkthrough, mock vs real table, and file-level architecture notes, see **`docs/demo-mode.md`**. In short: scripts live in `src/data/mockDialog.js`; flow is **idle → recording → processing → reviewing → linking → summarized**; **ClientLinker** is required before the summary in Demo.
+
+---
+
+## License
+
+No license file is included; treat usage as private until you add one.

@@ -16,8 +16,6 @@ const props = defineProps({
 
 const emit = defineEmits(['toggle'])
 
-const WAVEFORM_BARS = Array.from({ length: 22 }, (_, i) => i)
-
 const isRecording = computed(() => props.state === 'recording')
 const isProcessing = computed(() => props.state === 'processing')
 // Mic stays available for multi-round capture.
@@ -25,13 +23,6 @@ const isProcessing = computed(() => props.state === 'processing')
 // interaction is open.
 const isLocked = computed(() => ['processing', 'linking', 'summarizing'].includes(props.state))
 const isDisabled = computed(() => isLocked.value)
-const isGuideIdle = computed(() => props.inline && !isRecording.value && !isProcessing.value && !isLocked.value)
-
-const formatted = computed(() => {
-  const m = String(Math.floor(props.elapsedSeconds / 60)).padStart(2, '0')
-  const s = String(props.elapsedSeconds % 60).padStart(2, '0')
-  return `${m}:${s}`
-})
 
 const hint = computed(() => {
   if (isRecording.value) return props.labels.hintRecording
@@ -43,8 +34,8 @@ const hint = computed(() => {
 const ariaLabel = computed(() => (isRecording.value ? props.labels.ariaStop : props.labels.ariaStart))
 
 const progressStyle = computed(() => {
-  const pct = Math.max(0, Math.min(1, props.processingProgress)) * 100
-  return { width: `${pct}%` }
+  const scale = Math.max(0, Math.min(1, props.processingProgress))
+  return { '--progress-scale': String(scale) }
 })
 </script>
 
@@ -58,55 +49,28 @@ const progressStyle = computed(() => {
       'record-bar--locked': isLocked && !isProcessing,
     }"
   >
-    <div class="record-meta">
-      <transition name="reveal">
-        <div v-if="isRecording" class="timer-badge">
-          <span class="timer-dot" />
-          <span class="timer-value">{{ formatted }}</span>
-          <span class="timer-tag">{{ labels.rec }}</span>
+    <div v-if="!inline" class="record-meta">
+      <template v-if="isRecording">
+        <div class="record-hint record-hint--recording">
+          {{ hint }}
         </div>
-      </transition>
-
-      <transition name="reveal">
-        <div v-if="isProcessing" class="processing-badge">
-          <span class="processing-spinner" />
-          <span class="processing-tag">{{ labels.processing ?? 'Finalizing…' }}</span>
-        </div>
-      </transition>
-
-      <div class="record-wave">
-        <template v-if="isRecording">
-          <div class="waveform">
-            <span v-for="bar in WAVEFORM_BARS" :key="bar" class="wave-bar" />
+      </template>
+      <template v-else-if="isProcessing">
+        <div class="processing-stack">
+          <div class="processing-tag-row">
+            <span class="processing-spinner" />
+            <span class="processing-tag">{{ labels.processing ?? 'Finalizing…' }}</span>
           </div>
-        </template>
-        <template v-else-if="isProcessing">
           <div class="progress-track">
             <div class="progress-fill" :style="progressStyle" />
           </div>
-        </template>
-        <template v-else>
-          <div class="record-hint" :class="{ 'record-hint--stopped': isLocked, 'record-hint--guide': isGuideIdle }">
-            <template v-if="isGuideIdle">
-              <span class="record-hint-guide">{{ labels.hintGuide ?? 'Tap me' }}</span>
-              <svg
-                class="record-hint-arrow"
-                viewBox="0 0 26 12"
-                aria-hidden="true"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M1 6c4.8-2.6 9.7-2.6 14.5 0" />
-                <path d="M15.5 2.8L24 6l-8.5 3.2" />
-              </svg>
-            </template>
-            <template v-else>{{ hint }}</template>
-          </div>
-        </template>
-      </div>
+        </div>
+      </template>
+      <template v-else>
+        <div class="record-hint" :class="{ 'record-hint--stopped': isLocked }">
+          {{ hint }}
+        </div>
+      </template>
     </div>
 
     <button
@@ -152,11 +116,11 @@ const progressStyle = computed(() => {
   gap: 14px;
   padding: 14px 16px;
   border-radius: 20px;
-  background: #ffffff;
-  border: 1px solid rgba(15, 36, 75, 0.08);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   box-shadow:
-    0 1px 2px rgba(15, 36, 75, 0.04),
-    0 14px 24px -22px rgba(15, 36, 75, 0.24);
+    0 1px 2px rgba(28, 25, 23, 0.04),
+    0 14px 24px -22px rgba(28, 25, 23, 0.12);
   transition: border-color 0.4s ease, box-shadow 0.4s ease, background 0.4s ease;
 }
 
@@ -164,24 +128,25 @@ const progressStyle = computed(() => {
    become a flat bottom bar with a hairline divider on top. */
 .record-bar--inline {
   border: none;
-  border-top: 1px solid rgba(15, 36, 75, 0.06);
+  border-top: 1px solid var(--color-border);
   border-radius: 0;
-  background: linear-gradient(180deg, #ffffff 0%, #fcfdff 100%);
+  background: var(--color-surface);
   box-shadow: none;
   padding: 12px 16px;
+  justify-content: center;
 }
 
 .record-bar--recording {
   border-color: rgba(244, 63, 94, 0.18);
   box-shadow:
-    0 1px 2px rgba(15, 36, 75, 0.04),
+    0 1px 2px rgba(28, 25, 23, 0.04),
     0 14px 24px -22px rgba(225, 29, 72, 0.26);
 }
 
 .record-bar--inline.record-bar--recording {
   border: none;
   border-top: 1px solid rgba(244, 63, 94, 0.14);
-  background: linear-gradient(180deg, #fff7f8 0%, #fff 100%);
+  background: var(--color-surface);
   box-shadow: none;
 }
 
@@ -192,7 +157,7 @@ const progressStyle = computed(() => {
 .record-bar--inline.record-bar--processing {
   border: none;
   border-top: 1px solid rgba(99, 102, 241, 0.18);
-  background: linear-gradient(180deg, #f5f3ff 0%, #ffffff 100%);
+  background: var(--color-surface);
 }
 
 .record-meta {
@@ -203,63 +168,27 @@ const progressStyle = computed(() => {
   gap: 16px;
 }
 
-.record-bar--inline:not(.record-bar--recording):not(.record-bar--processing):not(.record-bar--locked) .record-meta {
-  justify-content: flex-end;
+.processing-stack {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.timer-badge {
-  align-self: flex-start;
+.processing-tag-row {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
-  background: rgba(244, 63, 94, 0.07);
-  border: 1px solid rgba(244, 63, 94, 0.14);
-  border-radius: 999px;
-  color: #e11d48;
-}
-
-.timer-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: #e11d48;
-  animation: pulse-dot 1.2s ease-in-out infinite;
-}
-
-.timer-value {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 13px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.06em;
-}
-
-.timer-tag {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  color: rgba(225, 29, 72, 0.8);
-}
-
-.processing-badge {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  background: rgba(99, 102, 241, 0.08);
-  border: 1px solid rgba(99, 102, 241, 0.22);
-  border-radius: 999px;
-  color: #4338ca;
+  color: var(--color-accent-text);
 }
 
 .processing-spinner {
   width: 10px;
   height: 10px;
   border-radius: 999px;
-  border: 1.5px solid rgba(99, 102, 241, 0.25);
-  border-top-color: #6366f1;
+  border: 1.5px solid rgba(13, 61, 92, 0.22);
+  border-top-color: var(--color-accent);
   animation: processing-spin 0.9s linear infinite;
 }
 
@@ -273,98 +202,40 @@ const progressStyle = computed(() => {
   letter-spacing: 0.04em;
 }
 
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.35; transform: scale(0.85); }
-}
-
-.record-wave {
-  min-height: 28px;
-  display: flex;
-  align-items: center;
-  color: rgba(148, 163, 184, 1);
-}
-
-.record-bar--inline:not(.record-bar--recording):not(.record-bar--processing):not(.record-bar--locked) .record-wave {
-  justify-content: flex-end;
-}
-
 .record-hint {
   font-size: 12.5px;
   font-weight: 500;
-  color: #64748b;
-}
-
-.record-hint--guide {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #475569;
-}
-
-.record-hint-guide {
-  font-weight: 600;
-  color: rgba(148, 163, 184, 1);
-}
-
-.record-hint-arrow {
-  width: 26px;
-  height: 12px;
-  color: rgba(148, 163, 184, 1);
-  transform: translateY(0.5px) rotate(-2deg);
+  color: var(--color-text-secondary);
 }
 
 .record-hint--stopped {
-  color: #1989fa;
+  color: var(--color-accent-text);
   font-weight: 600;
 }
 
-.waveform {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  height: 28px;
-  width: 100%;
-}
-
-.wave-bar {
-  display: block;
-  width: 3px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, #fb7185, #f43f5e);
-  transform-origin: center;
-  animation: voice-wave 900ms ease-in-out infinite;
-}
-
-.wave-bar:nth-child(odd) { animation-duration: 780ms; }
-.wave-bar:nth-child(3n) { animation-duration: 1050ms; }
-.wave-bar:nth-child(4n) { animation-duration: 640ms; }
-.wave-bar:nth-child(5n) { animation-duration: 1200ms; }
-.wave-bar:nth-child(2n) { animation-delay: 80ms; }
-.wave-bar:nth-child(3n) { animation-delay: 180ms; }
-.wave-bar:nth-child(4n) { animation-delay: 240ms; }
-.wave-bar:nth-child(7n) { animation-delay: 340ms; }
-
-@keyframes voice-wave {
-  0%, 100% { height: 20%; opacity: 0.7; }
-  50% { height: 100%; opacity: 1; }
+.record-hint--recording {
+  color: var(--color-text-secondary);
+  font-weight: 600;
 }
 
 .progress-track {
   width: 100%;
   height: 6px;
-  background: rgba(99, 102, 241, 0.12);
+  background: var(--color-accent-soft);
   border-radius: 999px;
   overflow: hidden;
   position: relative;
 }
 
 .progress-fill {
+  width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, #818cf8, #6366f1);
+  background: linear-gradient(90deg, var(--color-accent-strong), var(--color-accent));
   border-radius: 999px;
-  transition: width 0.1s linear;
-  box-shadow: 0 0 8px rgba(99, 102, 241, 0.45);
+  transform-origin: left center;
+  transform: scaleX(var(--progress-scale, 0));
+  transition: transform 0.1s linear;
+  box-shadow: 0 0 6px rgba(13, 61, 92, 0.25);
 }
 
 .progress-fill::after {
@@ -409,7 +280,7 @@ const progressStyle = computed(() => {
   position: absolute;
   inset: 14px;
   border-radius: 999px;
-  border: 1.5px solid rgba(25, 137, 250, 0.34);
+  border: 1.5px solid rgba(13, 61, 92, 0.35);
   pointer-events: none;
   opacity: 0;
   transform: scale(0.9);
@@ -444,11 +315,12 @@ const progressStyle = computed(() => {
   border-radius: 999px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, #3ea3ff 0%, #1989fa 60%, #0a6fd9 100%);
+  background: linear-gradient(165deg, var(--color-accent) 0%, var(--color-accent-strong) 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.44),
-    inset 0 -3px 9px rgba(0, 0, 0, 0.12),
-    0 8px 16px -10px rgba(25, 137, 250, 0.5);
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -3px 9px rgba(0, 0, 0, 0.15),
+    0 8px 22px -8px rgba(13, 61, 92, 0.42),
+    0 0 0 2px var(--color-warm-ring);
   transition: transform 0.18s ease, background 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -460,7 +332,7 @@ const progressStyle = computed(() => {
 .mic-icon {
   width: 20px;
   height: 20px;
-  color: #ffffff;
+  color: var(--color-on-accent);
 }
 
 .record-bar:not(.record-bar--inline) .mic-icon {
@@ -473,7 +345,7 @@ const progressStyle = computed(() => {
   width: 14px;
   height: 14px;
   border-radius: 3px;
-  background: #ffffff;
+  background: var(--color-on-accent);
 }
 
 .record-bar:not(.record-bar--inline) .stop-square {
@@ -481,8 +353,13 @@ const progressStyle = computed(() => {
   height: 16px;
 }
 
-.mic-button:not(.mic-button--recording):not(.mic-button--locked) .mic-core {
-  animation: mic-breath 2.8s ease-in-out infinite;
+.mic-button:hover:not(:disabled):not(.mic-button--recording):not(.mic-button--locked) .mic-core {
+  transform: scale(1.04);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    inset 0 -3px 9px rgba(0, 0, 0, 0.15),
+    0 14px 32px -8px rgba(13, 61, 92, 0.48),
+    0 0 0 2px var(--color-warm-ring);
 }
 
 .mic-button:active:not(:disabled) .mic-core {
@@ -490,7 +367,7 @@ const progressStyle = computed(() => {
 }
 
 .mic-button--recording .mic-core {
-  background: linear-gradient(135deg, #fb7185 0%, #f43f5e 60%, #e11d48 100%);
+  background: #f43f5e;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.42),
     inset 0 -3px 8px rgba(0, 0, 0, 0.16),
@@ -498,7 +375,7 @@ const progressStyle = computed(() => {
 }
 
 .mic-button--locked .mic-core {
-  background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 60%, #64748b 100%);
+  background: #94a3b8;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.4),
     inset 0 -4px 10px rgba(0, 0, 0, 0.1),
@@ -513,7 +390,7 @@ const progressStyle = computed(() => {
 }
 
 .mic-ring--1 {
-  background: radial-gradient(circle at 50% 50%, rgba(25, 137, 250, 0.24), transparent 70%);
+  background: radial-gradient(circle at 50% 50%, rgba(13, 61, 92, 0.22), transparent 70%);
 }
 
 .mic-button--recording .mic-ring--1 {
@@ -522,10 +399,6 @@ const progressStyle = computed(() => {
 
 .mic-button--locked .mic-ring--1 {
   background: radial-gradient(circle at 50% 50%, rgba(148, 163, 184, 0.18), transparent 70%);
-}
-
-.mic-button:not(.mic-button--recording):not(.mic-button--locked) .mic-ring--1 {
-  animation: mic-idle-glow 2.8s ease-in-out infinite;
 }
 
 .mic-ring--2,
@@ -548,16 +421,6 @@ const progressStyle = computed(() => {
   0% { transform: scale(0.7); opacity: 0.6; }
   70% { transform: scale(1.4); opacity: 0; }
   100% { transform: scale(1.4); opacity: 0; }
-}
-
-@keyframes mic-breath {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.045); }
-}
-
-@keyframes mic-idle-glow {
-  0%, 100% { opacity: 0.45; }
-  50% { opacity: 0.82; }
 }
 
 @keyframes mic-ripple {

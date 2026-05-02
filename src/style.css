@@ -1,16 +1,216 @@
 @import "tailwindcss";
 
+/* ── Mastercard-inspired: warm cream canvas, orbital pills, editorial warmth.
+   Brand-safe: no trademark circles; trust-navy accent + wheat/bronze undertones. ── */
 :root {
-  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #1f2937;
-  background: #f3f7fc;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-feature-settings: "cv11", "ss01", "ss03";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+
+  color: #252018;
+  background: #f2ede4;
+
+  --color-bg: #f2ede4;
+  --color-surface: #fffbf5;
+  --color-surface-elevated: #ffffff;
+  --color-surface-subtle: #ebe4d8;
+  --color-text-primary: #252018;
+  --color-text-secondary: #5c5346;
+  --color-text-muted: #9c9185;
+  --color-border: rgba(37, 32, 24, 0.07);
+  --color-border-strong: rgba(37, 32, 24, 0.13);
+  --color-topbar-bg: rgba(247, 243, 235, 0.88);
+  --color-hero-bg: #e8e2d6;
+  --color-card-bg: #fffbf5;
+  --color-card-head-bg: #f5f0e8;
+
+  /* Trust navy — institutional, distinct from generic product blue */
+  --color-accent: #0d3d5c;
+  --color-accent-strong: #0a3049;
+  --color-accent-soft: rgba(13, 61, 92, 0.09);
+  --color-accent-text: #0d4a72;
+  --color-on-accent: #fffbf5;
+
+  --color-warm-ring: rgba(176, 132, 72, 0.35);
+  --color-wash-warm: rgba(212, 175, 120, 0.14);
+
+  /* Outcome tones — restrained, palette-aware (sage / amber / terracotta).
+     Use *-soft for backgrounds, *-text for body copy on cream. */
+  --color-success: #2f7a4d;
+  --color-success-soft: rgba(47, 122, 77, 0.10);
+  --color-success-text: #245e3b;
+
+  --color-warning: #b76b1f;
+  --color-warning-soft: rgba(183, 107, 31, 0.10);
+  --color-warning-text: #8a4f17;
+
+  --color-danger: #b13d2c;
+  --color-danger-soft: rgba(177, 61, 44, 0.10);
+  --color-danger-text: #872f22;
+
+  --shadow-card:
+    0 1px 2px rgba(37, 32, 24, 0.05),
+    0 18px 36px -26px rgba(37, 32, 24, 0.14);
+  --shadow-elevated:
+    0 1px 2px rgba(37, 32, 24, 0.05),
+    0 28px 52px -30px rgba(37, 32, 24, 0.18);
+
+  --font-display: "Lora", Georgia, "Times New Roman", serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-orbit: 999px;
+}
+
+[data-theme="dark"] {
+  color: #f5f2eb;
+  background: #13110e;
+  --color-bg: #13110e;
+  --color-surface: #1e1c18;
+  --color-surface-elevated: #2a2723;
+  --color-surface-subtle: #181613;
+  --color-text-primary: #f5f2eb;
+  --color-text-secondary: #b8b0a4;
+  --color-text-muted: #8a8278;
+  --color-border: rgba(245, 242, 235, 0.06);
+  --color-border-strong: rgba(245, 242, 235, 0.13);
+  --color-topbar-bg: rgba(19, 17, 14, 0.9);
+  --color-hero-bg: #1a1815;
+  --color-card-bg: #1e1c18;
+  --color-card-head-bg: #141210;
+
+  --color-accent: #7eb8db;
+  --color-accent-strong: #9ec9e8;
+  --color-accent-soft: rgba(126, 184, 219, 0.12);
+  --color-accent-text: #b8daf0;
+  --color-on-accent: #13110e;
+
+  --color-warm-ring: rgba(212, 175, 120, 0.28);
+  --color-wash-warm: rgba(212, 175, 120, 0.08);
+
+  --color-success: #6ec488;
+  --color-success-soft: rgba(110, 196, 136, 0.14);
+  --color-success-text: #93dba8;
+
+  --color-warning: #e3a55a;
+  --color-warning-soft: rgba(227, 165, 90, 0.14);
+  --color-warning-text: #f0c282;
+
+  --color-danger: #e08373;
+  --color-danger-soft: rgba(224, 131, 115, 0.14);
+  --color-danger-text: #f0a89c;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35), 0 16px 40px -24px rgba(0, 0, 0, 0.65);
+  --shadow-elevated: 0 1px 2px rgba(0, 0, 0, 0.35), 0 24px 52px -28px rgba(0, 0, 0, 0.72);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color: #f5f2eb;
+    background: #13110e;
+    --color-bg: #13110e;
+    --color-surface: #1e1c18;
+    --color-surface-elevated: #2a2723;
+    --color-surface-subtle: #181613;
+    --color-text-primary: #f5f2eb;
+    --color-text-secondary: #b8b0a4;
+    --color-text-muted: #8a8278;
+    --color-border: rgba(245, 242, 235, 0.06);
+    --color-border-strong: rgba(245, 242, 235, 0.13);
+    --color-topbar-bg: rgba(19, 17, 14, 0.9);
+    --color-hero-bg: #1a1815;
+    --color-card-bg: #1e1c18;
+    --color-card-head-bg: #141210;
+    --color-accent: #7eb8db;
+    --color-accent-strong: #9ec9e8;
+    --color-accent-soft: rgba(126, 184, 219, 0.12);
+    --color-accent-text: #b8daf0;
+    --color-on-accent: #13110e;
+    --color-warm-ring: rgba(212, 175, 120, 0.28);
+    --color-wash-warm: rgba(212, 175, 120, 0.08);
+    --color-success: #6ec488;
+    --color-success-soft: rgba(110, 196, 136, 0.14);
+    --color-success-text: #93dba8;
+    --color-warning: #e3a55a;
+    --color-warning-soft: rgba(227, 165, 90, 0.14);
+    --color-warning-text: #f0c282;
+    --color-danger: #e08373;
+    --color-danger-soft: rgba(224, 131, 115, 0.14);
+    --color-danger-text: #f0a89c;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35), 0 16px 40px -24px rgba(0, 0, 0, 0.65);
+    --shadow-elevated: 0 1px 2px rgba(0, 0, 0, 0.35), 0 24px 52px -28px rgba(0, 0, 0, 0.72);
+  }
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 #app {
   min-height: 100vh;
+}
+
+/* ── Selection ── */
+::selection {
+  background: var(--color-accent-soft);
+  color: var(--color-text-primary);
+}
+
+/* ── Focus visible — quiet, intentional ── */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Utility classes ── */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+.font-body {
+  font-family: var(--font-body);
+  font-weight: 500;
+  line-height: 1.65;
+}
+
+.font-label {
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Subtle entrance animation, respects reduced motion ── */
+@media (prefers-reduced-motion: no-preference) {
+  .animate-rise-in {
+    animation: rise-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }

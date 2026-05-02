@@ -160,7 +160,6 @@ function blockEscape(e) {
       <div class="linker-card" @click.stop>
         <header class="linker-head">
           <div class="linker-eyebrow">
-            <span class="linker-spark">◆</span>
             {{ labels.eyebrow }}
           </div>
           <h2 class="linker-title">{{ labels.title }}</h2>
@@ -339,9 +338,7 @@ function blockEscape(e) {
 .linker-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(15, 23, 42, 0.42);
   z-index: 80;
   display: grid;
   place-items: center;
@@ -354,42 +351,35 @@ function blockEscape(e) {
   max-height: calc(100vh - 32px);
   display: flex;
   flex-direction: column;
-  background: #ffffff;
+  background: var(--color-surface);
   border-radius: 22px;
   box-shadow:
-    0 30px 60px -30px rgba(15, 36, 75, 0.5),
-    0 0 0 1px rgba(15, 36, 75, 0.04);
+    0 30px 60px -30px rgba(28, 25, 23, 0.3),
+    0 0 0 1px var(--color-border);
   overflow: hidden;
 }
 
 .linker-head {
   padding: 14px 18px 10px;
-  background: linear-gradient(180deg, #fafcff 0%, #ffffff 100%);
-  border-bottom: 1px solid rgba(15, 36, 75, 0.06);
+  background: var(--color-card-head-bg);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .linker-eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: #1989fa;
+  color: var(--color-text-muted);
   text-transform: uppercase;
-}
-
-.linker-spark {
-  display: inline-block;
-  transform: rotate(45deg);
-  font-size: 8px;
 }
 
 .linker-title {
   margin: 5px 0 3px;
   font-size: 16px;
   font-weight: 700;
-  color: #0b1f3a;
+  color: var(--color-text-primary);
   letter-spacing: -0.01em;
 }
 
@@ -447,8 +437,8 @@ function blockEscape(e) {
   display: flex;
   gap: 4px;
   padding: 8px 14px 0;
-  border-bottom: 1px solid rgba(15, 36, 75, 0.06);
-  background: #ffffff;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
 .linker-tab {
@@ -458,7 +448,7 @@ function blockEscape(e) {
   padding: 8px 14px;
   border: none;
   background: transparent;
-  color: #64748b;
+  color: var(--color-text-secondary);
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
@@ -470,8 +460,8 @@ function blockEscape(e) {
 }
 
 .linker-tab--active {
-  color: #1989fa;
-  border-bottom-color: #1989fa;
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
 }
 
 .linker-body {
@@ -528,7 +518,7 @@ function blockEscape(e) {
   margin-top: 4px;
   font-size: 14.5px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text-primary);
 }
 
 .match-card__meta {
@@ -538,20 +528,20 @@ function blockEscape(e) {
   align-items: center;
   gap: 6px;
   font-size: 11.5px;
-  color: #475569;
+  color: var(--color-text-secondary);
 }
 
 .match-card__tag {
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--color-surface);
   padding: 1px 8px;
   border-radius: 999px;
   font-weight: 600;
   font-size: 11px;
-  border: 1px solid rgba(15, 36, 75, 0.06);
+  border: 1px solid var(--color-border);
 }
 
 .match-card__lastseen {
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
 
 .match-card__check {
@@ -573,24 +563,24 @@ function blockEscape(e) {
 .search-row__icon {
   position: absolute;
   left: 12px;
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
 
 .search-row__input {
   width: 100%;
-  border: 1px solid rgba(15, 36, 75, 0.1);
+  border: 1px solid var(--color-border-strong);
   border-radius: 12px;
   padding: 9px 12px 9px 34px;
   font-size: 13px;
   font-family: inherit;
-  background: #f8fafc;
+  background: var(--color-surface);
   outline: none;
   transition: border-color 0.18s, background 0.18s;
 }
 
 .search-row__input:focus {
-  border-color: rgba(25, 137, 250, 0.5);
-  background: #ffffff;
+  border-color: rgba(13, 61, 92, 0.5);
+  background: var(--color-surface);
 }
 
 /* Client list */
@@ -603,9 +593,9 @@ function blockEscape(e) {
 .client-item {
   position: relative;
   text-align: left;
-  border: 1px solid rgba(15, 36, 75, 0.08);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: #ffffff;
+  background: var(--color-surface);
   padding: 10px 30px 10px 12px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -613,18 +603,18 @@ function blockEscape(e) {
 }
 
 .client-item:active {
-  background: #f8fafc;
+  background: var(--color-surface);
 }
 
 .client-item--active {
-  border-color: rgba(25, 137, 250, 0.45);
-  background: rgba(25, 137, 250, 0.06);
+  border-color: rgba(13, 61, 92, 0.45);
+  background: rgba(13, 61, 92, 0.06);
 }
 
 .client-item__name {
   font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--color-text-primary);
 }
 
 .client-item__meta {
@@ -634,18 +624,19 @@ function blockEscape(e) {
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  color: #475569;
+  color: var(--color-text-secondary);
 }
 
 .client-item__tag {
-  background: #f1f5f9;
+  background: var(--color-surface);
   border-radius: 999px;
   padding: 1px 7px;
   font-weight: 600;
+  border: 1px solid var(--color-border);
 }
 
 .client-item__lastseen {
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
 
 .client-item__check {
@@ -653,7 +644,7 @@ function blockEscape(e) {
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #1989fa;
+  color: var(--color-accent);
 }
 
 .empty-search {
@@ -687,26 +678,26 @@ function blockEscape(e) {
 
 .form-input {
   width: 100%;
-  border: 1px solid rgba(15, 36, 75, 0.1);
+  border: 1px solid var(--color-border-strong);
   border-radius: 12px;
   padding: 10px 12px;
   font-size: 13px;
   font-family: inherit;
-  background: #f8fafc;
+  background: var(--color-surface);
   outline: none;
   transition: border-color 0.18s, background 0.18s;
 }
 
 .form-input:focus {
-  border-color: rgba(25, 137, 250, 0.5);
-  background: #ffffff;
+  border-color: rgba(13, 61, 92, 0.5);
+  background: var(--color-surface);
 }
 
 /* Footer */
 .linker-foot {
-  border-top: 1px solid rgba(15, 36, 75, 0.06);
+  border-top: 1px solid var(--color-border);
   padding: 10px 16px 14px;
-  background: linear-gradient(180deg, #ffffff 0%, #fafcff 100%);
+  background: var(--color-card-head-bg);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -717,7 +708,7 @@ function blockEscape(e) {
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
 
 .footer-actions {
@@ -730,7 +721,7 @@ function blockEscape(e) {
 .cancel-text-btn {
   border: none;
   background: transparent;
-  color: #64748b;
+  color: var(--color-text-secondary);
   font-size: 12.5px;
   font-weight: 600;
   padding: 6px 4px;
@@ -740,7 +731,7 @@ function blockEscape(e) {
 }
 
 .cancel-text-btn:active {
-  color: #475569;
+  color: var(--color-text-primary);
 }
 
 .confirm-btn {
@@ -748,20 +739,24 @@ function blockEscape(e) {
   align-items: center;
   gap: 6px;
   border: none;
-  background: linear-gradient(135deg, #3ea3ff 0%, #1989fa 100%);
-  color: #ffffff;
+  background: linear-gradient(180deg, var(--color-accent) 0%, var(--color-accent-strong) 100%);
+  color: var(--color-on-accent);
   font-size: 13px;
   font-weight: 700;
   padding: 10px 22px;
   border-radius: 999px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  box-shadow: 0 8px 18px -10px rgba(25, 137, 250, 0.7);
+  box-shadow: 0 8px 18px -10px rgba(13, 61, 92, 0.4);
   transition: transform 0.15s, box-shadow 0.2s;
 }
 
+.confirm-btn:hover:not(:disabled) {
+  box-shadow: 0 10px 22px -10px rgba(13, 61, 92, 0.5);
+}
+
 .confirm-btn:disabled {
-  background: #cbd5e1;
+  background: #64748b;
   color: #ffffff;
   box-shadow: none;
   cursor: not-allowed;
@@ -769,7 +764,7 @@ function blockEscape(e) {
 
 .confirm-btn:not(:disabled):active {
   transform: translateY(0.5px);
-  box-shadow: 0 4px 10px -8px rgba(25, 137, 250, 0.7);
+  box-shadow: 0 4px 10px -6px rgba(13, 61, 92, 0.4);
 }
 
 /* Transition */

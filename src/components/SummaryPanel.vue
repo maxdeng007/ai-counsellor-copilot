@@ -120,7 +120,6 @@ async function copyEmail() {
   <section class="summary-panel">
     <header class="summary-header">
       <div class="summary-eyebrow">
-        <span class="sparkle">◆</span>
         {{ labels.eyebrow }}
       </div>
       <div v-if="generatedMeta" class="summary-meta">{{ generatedMeta }}</div>
@@ -128,11 +127,9 @@ async function copyEmail() {
 
     <transition name="fade" mode="out-in">
       <!-- ───────── Collapsed (waiting for stop) ───────── -->
-      <div v-if="isCollapsed" key="collapsed" class="summary-empty">
-        <div class="empty-orb">
-          <Icon name="guide-o" size="18" class="empty-wand-icon" />
-        </div>
-        <p class="empty-text">{{ labels.emptyText }}</p>
+      <div v-if="isCollapsed" key="collapsed" class="summary-empty" role="note">
+        <Icon name="clock-o" size="13" class="summary-empty__icon" />
+        <p class="summary-empty__text">{{ labels.emptyText }}</p>
       </div>
 
       <!-- ───────── Analyzing ───────── -->
@@ -155,7 +152,7 @@ async function copyEmail() {
       <div v-else-if="isReady" key="ready" class="summary-ready">
         <article class="summary-block">
           <div class="block-head">
-            <div class="block-icon block-icon--violet">
+            <div class="block-icon">
               <Icon name="comment-o" size="14" />
             </div>
             <div class="block-title">{{ labels.summaryHeading }}</div>
@@ -165,7 +162,7 @@ async function copyEmail() {
 
         <article class="summary-block">
           <div class="block-head">
-            <div class="block-icon block-icon--emerald">
+            <div class="block-icon">
               <Icon name="contact" size="14" />
             </div>
             <div class="block-title">{{ profileLabel }}</div>
@@ -180,7 +177,7 @@ async function copyEmail() {
 
         <article class="summary-block">
           <div class="block-head">
-            <div class="block-icon block-icon--sky">
+            <div class="block-icon">
               <Icon name="balance-list-o" size="14" />
             </div>
             <div class="block-title">{{ assetsLabel }}</div>
@@ -195,7 +192,7 @@ async function copyEmail() {
 
         <article class="summary-block">
           <div class="block-head">
-            <div class="block-icon block-icon--amber">
+            <div class="block-icon">
               <Icon name="warning-o" size="14" />
             </div>
             <div class="block-title">{{ riskLabel }}</div>
@@ -208,7 +205,7 @@ async function copyEmail() {
 
         <article class="summary-block">
           <div class="block-head">
-            <div class="block-icon block-icon--rose">
+            <div class="block-icon">
               <Icon name="label-o" size="14" />
             </div>
             <div class="block-title">{{ labels.topicsHeading }}</div>
@@ -220,7 +217,7 @@ async function copyEmail() {
 
         <article class="summary-block">
           <div class="block-head">
-            <div class="block-icon block-icon--violet">
+            <div class="block-icon">
               <Icon name="todo-list-o" size="14" />
             </div>
             <div class="block-title">{{ labels.actionsHeading }}</div>
@@ -252,7 +249,7 @@ async function copyEmail() {
         <article class="summary-block summary-block--email">
           <button type="button" class="email-toggle" @click="emailExpanded = !emailExpanded">
             <div class="block-head" style="margin: 0">
-              <div class="block-icon block-icon--sky">
+              <div class="block-icon">
                 <Icon name="envelop-o" size="14" />
               </div>
               <div class="block-title">{{ labels.emailHeading }}</div>
@@ -278,75 +275,82 @@ async function copyEmail() {
 
 <style scoped>
 .summary-panel {
-  padding: 16px;
-  border-radius: 20px;
-  background: #ffffff;
-  border: 1px solid rgba(15, 36, 75, 0.06);
-  box-shadow:
-    0 1px 2px rgba(15, 36, 75, 0.03),
-    0 18px 36px -24px rgba(15, 36, 75, 0.18);
+  padding: 20px;
+  border-radius: var(--radius-xl);
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
 }
 
 .summary-header {
-  margin-bottom: 14px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .summary-eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.16em;
-  color: #1989fa;
+  letter-spacing: 0.18em;
+  color: var(--color-text-muted);
   text-transform: uppercase;
 }
 
-.sparkle {
-  display: inline-block;
-  transform: rotate(45deg);
-  font-size: 8px;
+.summary-eyebrow::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
 }
 
 .summary-meta {
-  margin-top: 4px;
+  margin-top: 6px;
   font-size: 11.5px;
-  font-weight: 600;
-  color: #64748b;
+  font-weight: 500;
+  color: var(--color-text-secondary);
   letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
 }
 
-/* ───────── Empty / Collapsed ───────── */
+/* ───────── Empty / Collapsed — ultra-minimal hint ───────── */
 .summary-empty {
-  padding: 36px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px 18px;
   text-align: center;
-  color: #94a3b8;
 }
 
-.empty-orb {
-  width: 44px;
-  height: 44px;
-  border-radius: 999px;
-  margin: 0 auto 10px;
-  display: grid;
-  place-items: center;
-  background: #f8fafc;
-  color: #94a3b8;
-  border: 1px solid rgba(148, 163, 184, 0.22);
+.summary-empty__icon {
+  color: var(--color-text-muted);
+  opacity: 0.38;
+  flex-shrink: 0;
 }
 
-.empty-wand-icon {
-  width: 18px;
-  height: 18px;
-  color: #94a3b8;
-}
-
-.empty-text {
-  font-size: 12px;
-  line-height: 1.6;
+.summary-empty__text {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--color-text-muted);
   max-width: 28ch;
-  margin: 0 auto;
-  color: #94a3b8;
+  margin: 0;
+  opacity: 0.72;
+}
+
+[data-theme="dark"] .summary-empty__text {
+  opacity: 0.5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .summary-empty__text {
+    opacity: 0.5;
+  }
 }
 
 /* ───────── Analyzing ───────── */
@@ -357,66 +361,37 @@ async function copyEmail() {
 
 .analyze-loader {
   position: relative;
-  width: 72px;
-  height: 72px;
-  margin: 0 auto 14px;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 12px;
 }
 
 .loader-ring {
   position: absolute;
   border-radius: 999px;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  border: 1px solid rgba(100, 116, 139, 0.3);
 }
 
 .loader-ring--outer {
   inset: 0;
-  animation: loader-spin 5.4s linear infinite;
-}
-
-.loader-ring--mid {
-  inset: 10px;
-  border-color: rgba(59, 130, 246, 0.4);
-  border-style: dashed;
-  animation: loader-spin-reverse 3.8s linear infinite;
+  border-top-color: var(--color-accent);
+  animation: loader-spin 1.1s linear infinite;
 }
 
 .loader-core {
   position: absolute;
-  inset: 22px;
+  inset: 16px;
   border-radius: 999px;
-  background: radial-gradient(circle at 35% 30%, #93c5fd 0%, #3b82f6 60%, #1d4ed8 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.35),
-    0 10px 24px -14px rgba(37, 99, 235, 0.8);
-  animation: loader-pulse 1.8s cubic-bezier(0.25, 1, 0.5, 1) infinite;
-}
-
-.loader-glint {
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: rgba(125, 211, 252, 0.9);
-  box-shadow: 0 0 0 4px rgba(125, 211, 252, 0.12);
-  animation: glint-float 1.6s cubic-bezier(0.22, 1, 0.36, 1) infinite alternate;
-}
-
-.loader-glint--1 {
-  left: 8px;
-  top: 12px;
-}
-
-.loader-glint--2 {
-  right: 9px;
-  bottom: 12px;
-  animation-delay: 0.35s;
+  background: var(--color-accent);
 }
 
 .analyze-title {
   margin: 4px 0 4px;
-  font-size: 14.5px;
-  font-weight: 650;
-  color: #0b1f3a;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
 }
 
 .analyze-subline {
@@ -425,15 +400,15 @@ async function copyEmail() {
   gap: 7px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(59, 130, 246, 0.06);
-  border: 1px solid rgba(59, 130, 246, 0.14);
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent-soft);
 }
 
 .analyze-subline-dot {
   width: 6px;
   height: 6px;
   border-radius: 999px;
-  background: #60a5fa;
+  background: var(--color-accent);
   animation: dot-blink 1s ease-in-out infinite;
 }
 
@@ -441,27 +416,12 @@ async function copyEmail() {
   margin: 0;
   font-size: 11.5px;
   font-weight: 500;
-  color: #64748b;
+  color: var(--color-text-secondary);
 }
 
 @keyframes loader-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
-}
-
-@keyframes loader-spin-reverse {
-  from { transform: rotate(360deg); }
-  to { transform: rotate(0deg); }
-}
-
-@keyframes loader-pulse {
-  0%, 100% { transform: scale(0.94); }
-  50% { transform: scale(1); }
-}
-
-@keyframes glint-float {
-  from { transform: translateY(0) scale(0.92); opacity: 0.7; }
-  to { transform: translateY(-2px) scale(1.06); opacity: 1; }
 }
 
 @keyframes dot-blink {
@@ -471,9 +431,7 @@ async function copyEmail() {
 
 @media (prefers-reduced-motion: reduce) {
   .loader-ring--outer,
-  .loader-ring--mid,
   .loader-core,
-  .loader-glint,
   .analyze-subline-dot {
     animation: none !important;
   }
@@ -483,64 +441,53 @@ async function copyEmail() {
 .summary-ready {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
 }
 
 .summary-block {
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: #fafcff;
-  border: 1px solid rgba(15, 36, 75, 0.05);
-  animation: slide-up 460ms ease both;
+  padding: 0;
+  background: transparent;
+  border: none;
+  position: relative;
 }
 
-.summary-block:nth-child(1) { animation-delay: 0ms; }
-.summary-block:nth-child(2) { animation-delay: 80ms; }
-.summary-block:nth-child(3) { animation-delay: 160ms; }
-.summary-block:nth-child(4) { animation-delay: 240ms; }
-.summary-block:nth-child(5) { animation-delay: 320ms; }
-.summary-block:nth-child(6) { animation-delay: 400ms; }
-.summary-block:nth-child(7) { animation-delay: 480ms; }
-
-@keyframes slide-up {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+.summary-block + .summary-block {
+  padding-top: 18px;
+  border-top: 1px solid var(--color-border);
 }
 
 .block-head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .block-icon {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 8px;
   display: grid;
   place-items: center;
   flex-shrink: 0;
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
-.block-icon--violet { background: #ede9fe; color: #6d28d9; }
-.block-icon--emerald { background: #d1fae5; color: #047857; }
-.block-icon--sky { background: #e0f2fe; color: #0369a1; }
-.block-icon--amber { background: #fef3c7; color: #b45309; }
-.block-icon--rose { background: #ffe4e6; color: #be123c; }
-
 .block-title {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  color: #0f172a;
+  letter-spacing: 0.005em;
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
 }
 
 .block-text {
   margin: 0;
   font-size: 13px;
   line-height: 1.7;
-  color: #334155;
+  color: var(--color-text-secondary);
 }
 
 .kv-grid {
@@ -556,7 +503,7 @@ async function copyEmail() {
   justify-content: space-between;
   gap: 12px;
   font-size: 12.5px;
-  border-bottom: 1px dashed rgba(15, 36, 75, 0.08);
+  border-bottom: 1px dashed var(--color-border);
   padding-bottom: 6px;
 }
 
@@ -567,13 +514,13 @@ async function copyEmail() {
 
 .kv-row dt {
   margin: 0;
-  color: #64748b;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
 .kv-row dd {
   margin: 0;
-  color: #0f172a;
+  color: var(--color-text-primary);
   font-weight: 600;
 }
 
@@ -585,19 +532,36 @@ async function copyEmail() {
 }
 
 .risk-pill {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 5px 12px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  color: #92400e;
-  font-size: 12px;
+  background: rgba(217, 119, 6, 0.1);
+  color: #b45309;
+  font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.02em;
+  border: 1px solid rgba(217, 119, 6, 0.18);
+}
+
+.risk-pill::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+[data-theme="dark"] .risk-pill {
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.22);
 }
 
 .risk-target {
   font-size: 12px;
-  color: #475569;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
@@ -608,13 +572,14 @@ async function copyEmail() {
 }
 
 .topic-chip {
-  padding: 4px 10px;
+  padding: 5px 11px;
   border-radius: 999px;
-  background: #ede9fe;
-  color: #5b21b6;
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
   font-size: 11.5px;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
+  border: 1px solid var(--color-border);
 }
 
 .action-list {
@@ -628,38 +593,44 @@ async function copyEmail() {
 
 .action-row {
   display: grid;
-  grid-template-columns: 22px 1fr auto;
+  grid-template-columns: 24px 1fr auto;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background: #ffffff;
-  border-radius: 12px;
-  border: 1px solid rgba(15, 36, 75, 0.05);
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--color-surface-subtle);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.action-row:hover {
+  border-color: var(--color-border-strong);
 }
 
 .action-index {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #5bb4ff 0%, #1989fa 100%);
-  color: #ffffff;
+  background: var(--color-text-primary);
+  color: var(--color-surface);
   font-size: 11px;
   font-weight: 700;
   display: grid;
   place-items: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .action-text {
   font-size: 12.5px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--color-text-primary);
   line-height: 1.5;
 }
 
 .action-due {
   margin-top: 2px;
   font-size: 11px;
-  color: #64748b;
+  color: var(--color-text-secondary);
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -667,7 +638,7 @@ async function copyEmail() {
 
 .action-btn {
   border: none;
-  background: linear-gradient(135deg, #3ea3ff 0%, #1989fa 100%);
+  background: var(--color-accent);
   color: #ffffff;
   font-size: 11px;
   font-weight: 700;
@@ -679,7 +650,12 @@ async function copyEmail() {
   align-items: center;
   gap: 4px;
   -webkit-tap-highlight-color: transparent;
-  transition: background 0.2s, transform 0.15s;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+
+.action-btn:hover {
+  background: var(--color-accent-strong);
+  box-shadow: 0 4px 12px -4px var(--color-accent-soft);
 }
 
 .action-btn:active {
@@ -687,12 +663,15 @@ async function copyEmail() {
 }
 
 .action-btn--done {
-  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+  background: #10b981;
+}
+
+.action-btn--done:hover {
+  background: #059669;
 }
 
 .summary-block--email {
   padding: 0;
-  overflow: hidden;
 }
 
 .email-toggle {
@@ -700,7 +679,7 @@ async function copyEmail() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px;
+  padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -708,25 +687,25 @@ async function copyEmail() {
 }
 
 .email-chevron {
-  color: #94a3b8;
+  color: var(--color-text-muted);
   transition: transform 0.2s;
 }
 
 .email-body {
-  padding: 0 14px 14px;
+  padding: 12px 0 0;
 }
 
 .email-text {
   margin: 0;
   white-space: pre-wrap;
-  font-family: inherit;
-  font-size: 12.5px;
+  font-family: var(--font-mono);
+  font-size: 12px;
   line-height: 1.7;
-  color: #334155;
-  padding: 12px 14px;
-  background: #ffffff;
-  border-radius: 12px;
-  border: 1px dashed rgba(15, 36, 75, 0.12);
+  color: var(--color-text-secondary);
+  padding: 14px 16px;
+  background: var(--color-surface-subtle);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
 }
 
 .email-actions {
@@ -736,9 +715,9 @@ async function copyEmail() {
 }
 
 .copy-btn {
-  border: none;
-  background: rgba(25, 137, 250, 0.1);
-  color: #1989fa;
+  border: 1px solid var(--color-accent-soft);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
   font-size: 11px;
   font-weight: 700;
   padding: 6px 12px;
@@ -748,10 +727,17 @@ async function copyEmail() {
   align-items: center;
   gap: 4px;
   -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s, color 0.2s;
+}
+
+.copy-btn:hover {
+  background: var(--color-accent);
+  color: #ffffff;
+  border-color: var(--color-accent);
 }
 
 .copy-btn:active {
-  background: rgba(25, 137, 250, 0.18);
+  transform: scale(0.96);
 }
 
 /* ───────── Transitions ───────── */
@@ -766,17 +752,16 @@ async function copyEmail() {
 
 .reveal-enter-active,
 .reveal-leave-active {
-  transition: opacity 0.28s ease, max-height 0.32s ease;
-  overflow: hidden;
+  transition: opacity 0.24s ease, transform 0.24s ease;
 }
 .reveal-enter-from,
 .reveal-leave-to {
   opacity: 0;
-  max-height: 0;
+  transform: translateY(-4px);
 }
 .reveal-enter-to,
 .reveal-leave-from {
   opacity: 1;
-  max-height: 600px;
+  transform: translateY(0);
 }
 </style>

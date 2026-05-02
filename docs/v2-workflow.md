@@ -117,7 +117,7 @@ flowchart LR
   liveDia["Lightweight live turn detection<br/>(2-speaker assumption: A vs B only)"]
   upload["On Stop:<br/>full audio uploaded"]
   fullASR["Server ASR pass<br/>(higher quality)"]
-  fullDia["Full diarization<br/>(VBx / pyannote / commercial)"]
+  fullDia["Full diarization<br/>(Volc + session voiceprint linking)"]
   align["Alignment + transcript merge"]
   ner["Entity extraction<br/>(name, age, amounts, topics)"]
   match["Client matcher<br/>(fuzzy match on CRM)"]
