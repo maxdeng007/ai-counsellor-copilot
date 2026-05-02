@@ -1,6 +1,8 @@
 # AI Record · Counsellor Copilot
 
-![Counsellor Copilot — live session home (EN): hero, ready state, mic, AI notes placeholder](docs/images/readme-screenshot.png)
+<p align="center">
+  <img src="docs/images/readme-screenshot.png" alt="Counsellor Copilot — live session home (EN): hero, ready state, mic, AI notes placeholder" style="width: 50%; max-width: 100%; height: auto;" />
+</p>
 
 A **Vue 3** web app for **AI-assisted financial counselling meetings**: live or demo transcript, speaker diarization, client linking, and meeting summaries. A **FastAPI** service (`diarization-service`) connects to **Volc / Doubao** streaming ASR and optional **OpenAI**-based summarization.
 
