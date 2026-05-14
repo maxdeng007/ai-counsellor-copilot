@@ -10,18 +10,29 @@ Required Volc ASR variables:
 VOLC_APP_ID=...
 VOLC_ACCESS_TOKEN=...
 VOLC_SECRET_KEY=...
-VOLC_RESOURCE_ID=volc.bigasr.sauc.duration
+VOLC_RESOURCE_ID=volc.bigasr.sauc.durationc
 VOLC_WS_URL=wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_async
 ```
 
-Required OpenAI summary variables:
+Meeting summary (pick **one** provider via `SUMMARY_PROVIDER`):
+
+**OpenAI** (default; needs reachable `api.openai.com` or a proxy from your server):
 
 ```bash
-OPENAI_API_KEY=...
 SUMMARY_PROVIDER=openai
+OPENAI_API_KEY=...
 SUMMARY_MODEL=gpt-4o-mini
-# Optional if using a proxy:
 # OPENAI_BASE_URL=https://api.openai.com/v1
+```
+
+**Volcano Ark / 豆包** (OpenAI-compatible Chat API; typical for mainland-hosted backends):
+
+```bash
+SUMMARY_PROVIDER=volc_ark
+VOLC_ARK_API_KEY=...
+VOLC_ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+VOLC_ARK_MODEL_TIER=lite
+# Or: VOLC_ARK_MODEL=ep-m-...
 ```
 
 ## 2) Start backend (Terminal A)
@@ -114,6 +125,6 @@ npm run dev
 ## 6) Notes
 
 - The FastAPI app reads Volc/OpenAI settings from the process environment only (no automatic `.env` load in code). Use `set -a && source .env && set +a` from `diarization-service/` before `uvicorn`, or export variables another way you prefer.
-- If summary does not generate, check `OPENAI_API_KEY` in `diarization-service/.env`.
+- If summary does not generate, check `SUMMARY_PROVIDER` and keys in `diarization-service/.env` (`OPENAI_API_KEY` for OpenAI, `VOLC_ARK_API_KEY` for `volc_ark`).
 - If transcript fails, check Volc env variables and backend logs. Match `VOLC_RESOURCE_ID` to the product enabled in your Volc console (often `volc.bigasr.sauc.duration` for the async big-model stream).
 - Keep secrets only in local `.env` files; do not commit real keys.

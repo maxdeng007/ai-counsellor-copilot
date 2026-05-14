@@ -10,6 +10,7 @@ session-level voiceprint linking.
   - `mode=refresh` for periodic full-audio refresh
   - `mode=final` at stop-time finalization
 - `POST /api/process-voice-volc-preview` (multipart: `file`) for live caption preview text
+- `POST /api/summarize-meeting` (JSON) — meeting summary; configure `SUMMARY_PROVIDER` (`openai` or `volc_ark`) in `.env`
 - `GET /api/voiceprint/profiles`
 - `POST /api/voiceprint/enroll`
 - `DELETE /api/voiceprint/profiles/{profile_id}`
@@ -20,6 +21,7 @@ session-level voiceprint linking.
 - `VOLC_APP_ID`, `VOLC_ACCESS_TOKEN`, `VOLC_SECRET_KEY`
 - `VOLC_RESOURCE_ID` (default `volc.seedasr.sauc.duration`)
 - `VOLC_WS_URL` (default `wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_async`)
+- Summary: `SUMMARY_PROVIDER` (`openai` or `volc_ark`), plus keys in `.env.example`
 - Voiceprint tuning vars in `app/services/voiceprint_service.py` (optional)
 
 ## Local run

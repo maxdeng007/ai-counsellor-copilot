@@ -17,6 +17,40 @@ SUMMARY_MODEL = os.getenv("SUMMARY_MODEL", "gpt-4o-mini")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "").strip()
 
+# Volcano Ark (豆包) — OpenAI-compatible Chat Completions; use api root …/api/v3 (SDK adds /chat/completions).
+VOLC_ARK_BASE_URL_DEFAULT = "https://ark.cn-beijing.volces.com/api/v3"
+DOUBAO_SEED_LITE_EP = "ep-m-20260427181727-ms2s8"
+DOUBAO_SEED_MINI_EP = "ep-m-20260506152356-bdvpg"
+VOLC_ARK_API_KEY = os.getenv("VOLC_ARK_API_KEY", "").strip()
+
+
+def _normalize_summary_provider(raw: str) -> str:
+    key = (raw or "openai").strip().lower() or "openai"
+    if key in ("volc_ark", "volc", "ark", "doubao", "byte_ark"):
+        return "volc_ark"
+    if key == "openai":
+        return "openai"
+    _log.warning("Unknown SUMMARY_PROVIDER=%r; falling back to openai", raw)
+    return "openai"
+
+
+def _volc_ark_base_url() -> str:
+    raw = (os.getenv("VOLC_ARK_BASE_URL") or "").strip() or VOLC_ARK_BASE_URL_DEFAULT
+    base = raw.rstrip("/")
+    if base.endswith("/chat/completions"):
+        base = base[: -len("/chat/completions")]
+    return base
+
+
+def _resolved_volc_ark_model() -> str:
+    explicit = os.getenv("VOLC_ARK_MODEL", "").strip()
+    if explicit:
+        return explicit
+    tier = os.getenv("VOLC_ARK_MODEL_TIER", "lite").strip().lower()
+    if tier in ("mini", "seed-mini", "doubao-seed-2.0-mini"):
+        return DOUBAO_SEED_MINI_EP
+    return DOUBAO_SEED_LITE_EP
+
 
 def _output_schema() -> Dict[str, Any]:
     # Keep schema aligned with SummaryPanel contract.
@@ -154,19 +188,11 @@ def _build_messages(req: SummarizeMeetingRequest) -> List[Dict[str, str]]:
     ]
 
 
-def summarize_with_openai(req: SummarizeMeetingRequest) -> SummaryOutput:
-    if not OPENAI_API_KEY:
-        raise RuntimeError("OPENAI_API_KEY is missing")
-
-    client_kwargs: Dict[str, Any] = {"api_key": OPENAI_API_KEY}
-    if OPENAI_BASE_URL:
-        client_kwargs["base_url"] = OPENAI_BASE_URL
-    client = OpenAI(**client_kwargs)
-
+def _chat_summary_json_schema(client: OpenAI, model: str, req: SummarizeMeetingRequest) -> SummaryOutput:
     messages = _build_messages(req)
     schema = _output_schema()
     response = client.chat.completions.create(
-        model=SUMMARY_MODEL,
+        model=model,
         messages=messages,
         response_format={
             "type": "json_schema",
@@ -185,10 +211,36 @@ def summarize_with_openai(req: SummarizeMeetingRequest) -> SummaryOutput:
     return SummaryOutput.model_validate(parsed)
 
 
+def summarize_with_openai(req: SummarizeMeetingRequest) -> SummaryOutput:
+    if not OPENAI_API_KEY:
+        raise RuntimeError("OPENAI_API_KEY is missing")
+
+    client_kwargs: Dict[str, Any] = {"api_key": OPENAI_API_KEY}
+    if OPENAI_BASE_URL:
+        client_kwargs["base_url"] = OPENAI_BASE_URL.rstrip("/")
+    client = OpenAI(**client_kwargs)
+    return _chat_summary_json_schema(client, SUMMARY_MODEL, req)
+
+
+def summarize_with_volc_ark(req: SummarizeMeetingRequest) -> SummaryOutput:
+    if not VOLC_ARK_API_KEY:
+        raise RuntimeError("VOLC_ARK_API_KEY is missing")
+    client = OpenAI(api_key=VOLC_ARK_API_KEY, base_url=_volc_ark_base_url())
+    model = _resolved_volc_ark_model()
+    return _chat_summary_json_schema(client, model, req)
+
+
 def summarize_meeting(req: SummarizeMeetingRequest) -> Dict[str, Any]:
-    if SUMMARY_PROVIDER != "openai":
-        _log.warning("Unsupported SUMMARY_PROVIDER=%s, fallback to openai", SUMMARY_PROVIDER)
+    provider = _normalize_summary_provider(SUMMARY_PROVIDER)
     try:
+        if provider == "volc_ark":
+            output = summarize_with_volc_ark(req)
+            return {
+                "ok": True,
+                "degraded": False,
+                "provider": "volc_ark",
+                "aiOutput": output,
+            }
         output = summarize_with_openai(req)
         return {
             "ok": True,
@@ -202,7 +254,7 @@ def summarize_meeting(req: SummarizeMeetingRequest) -> Dict[str, Any]:
         return {
             "ok": False,
             "degraded": True,
-            "provider": "openai",
+            "provider": provider,
             "error": f"{type(error).__name__}: {error}",
             "aiOutput": fallback,
         }
