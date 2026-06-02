@@ -29,6 +29,17 @@ VOLC_WS_URL = os.getenv(
 VOLC_DEBUG = os.getenv("VOLC_DEBUG", "0") in ("1", "true", "yes")
 _log = logging.getLogger("volc-asr-service")
 
+# Volc/Doubao ASR is a China-hosted endpoint and must be reached directly.
+# If the host shell exports a SOCKS/HTTP proxy (e.g. a VPN), `websockets`
+# would route the handshake through it and fail (needs python-socks, and the
+# proxy can't reach the domestic endpoint). Disable proxy use when supported.
+try:
+    import inspect as _inspect
+
+    _WS_SUPPORTS_PROXY = "proxy" in _inspect.signature(websockets.connect).parameters
+except (ValueError, TypeError):  # pragma: no cover - builtins without signature
+    _WS_SUPPORTS_PROXY = False
+
 
 @dataclass
 class VolcUtterance:
@@ -742,7 +753,13 @@ async def transcribe_with_doubao(audio_bytes: bytes) -> List[Dict[str, Any]]:
             prev_count = len(utterances)
             prev_text = latest_result_text
             params = _build_params_for_endpoint(ws_url)
-            async with websockets.connect(ws_url, additional_headers=headers, max_size=20 * 1024 * 1024) as ws:
+            connect_kwargs: Dict[str, Any] = {
+                "additional_headers": headers,
+                "max_size": 20 * 1024 * 1024,
+            }
+            if _WS_SUPPORTS_PROXY:
+                connect_kwargs["proxy"] = None
+            async with websockets.connect(ws_url, **connect_kwargs) as ws:
                 connected_ok = True
                 last_error = None
                 await ws.send(_build_frame(1, params))
