@@ -212,6 +212,11 @@ const liveCaptionText = ref('')
 const liveCaptionState = ref('idle') // 'idle' | 'streaming' | 'analyzing'
 const transcriptText = ref('')
 const pendingChunks = ref(0)
+// Mobile background-recording mitigations: keep screen awake while recording and
+// surface a warning if the OS suspends capture (screen lock / app switch).
+const recordingInterrupted = ref(false)
+let wakeLockSentinel = null
+let mitigationsActive = false
 const viewMode = computed({
   get: () => props.viewMode || 'speaker',
   set: (val) => emit('update:view-mode', val),
@@ -941,6 +946,7 @@ async function transcribePreviewChunk(blob, seq) {
 
 
 function releaseRecorder() {
+  stopRecordingMitigations()
   if (vadTimer) {
     clearInterval(vadTimer)
     vadTimer = null
@@ -1771,6 +1777,71 @@ function evaluateVadTick() {
   flushPcmChunk(true)
 }
 
+async function requestWakeLock() {
+  try {
+    if (typeof navigator === 'undefined' || !('wakeLock' in navigator)) return
+    wakeLockSentinel = await navigator.wakeLock.request('screen')
+    wakeLockSentinel.addEventListener?.('release', () => {
+      wakeLockSentinel = null
+    })
+  } catch {
+    // Wake Lock can reject (no permission, low battery, unsupported); recording still works.
+    wakeLockSentinel = null
+  }
+}
+
+async function releaseWakeLock() {
+  try {
+    await wakeLockSentinel?.release?.()
+  } catch {
+    /* noop */
+  }
+  wakeLockSentinel = null
+}
+
+function handleAudioStateChange() {
+  if (flowState.value !== 'recording' || !audioCtx) return
+  if (audioCtx.state === 'suspended' || audioCtx.state === 'interrupted') {
+    recordingInterrupted.value = true
+    // Best-effort resume; on iOS lock this only succeeds once the page is visible again.
+    void audioCtx.resume().catch(() => {})
+  }
+}
+
+function handleVisibilityChange() {
+  if (flowState.value !== 'recording') return
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+    // The page is backgrounded: the OS will (especially on iOS) suspend audio capture.
+    recordingInterrupted.value = true
+    return
+  }
+  // Returned to foreground while still recording: try to recover capture + screen lock.
+  void audioCtx?.resume?.().catch(() => {})
+  void requestWakeLock()
+}
+
+function startRecordingMitigations() {
+  if (mitigationsActive) return
+  mitigationsActive = true
+  recordingInterrupted.value = false
+  if (audioCtx) audioCtx.onstatechange = handleAudioStateChange
+  void requestWakeLock()
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+  }
+}
+
+function stopRecordingMitigations() {
+  if (!mitigationsActive) return
+  mitigationsActive = false
+  recordingInterrupted.value = false
+  if (audioCtx) audioCtx.onstatechange = null
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }
+  void releaseWakeLock()
+}
+
 async function startLive() {
   const preserveConversation =
     (flowState.value === 'reviewing' || flowState.value === 'summarized') &&
@@ -1801,6 +1872,7 @@ async function startLive() {
     latencyHint: 'interactive',
   })
   await audioCtx.resume()
+  startRecordingMitigations()
 
   const source = audioCtx.createMediaStreamSource(mediaStream)
   let tap = source
@@ -2039,6 +2111,31 @@ onBeforeUnmount(() => {
           {{ transcriptHint }}
         </span>
         <span v-if="showVolcDebug" class="debug-chip">{{ volcDebugLine }}</span>
+      </div>
+
+      <div
+        v-if="flowState === 'recording'"
+        class="record-guard"
+        :class="{ 'record-guard--alert': recordingInterrupted }"
+        role="status"
+        aria-live="polite"
+      >
+        <span class="record-guard__text">
+          <template v-if="recordingInterrupted">
+            {{
+              props.locale === 'zh'
+                ? '录音可能已中断：请保持本页面在前台并亮屏，息屏或切换应用会停止采集。'
+                : 'Recording may have paused: keep this page open and the screen on—locking or switching apps stops capture.'
+            }}
+          </template>
+          <template v-else>
+            {{
+              props.locale === 'zh'
+                ? '录音中：请保持屏幕常亮，勿锁屏或切换到其他应用。'
+                : 'Recording: keep the screen on—do not lock the phone or switch apps.'
+            }}
+          </template>
+        </span>
       </div>
 
       <div
@@ -2524,6 +2621,21 @@ onBeforeUnmount(() => {
   border-radius: 999px;
   padding: 2px 8px;
   white-space: nowrap;
+}
+
+.record-guard {
+  margin: 8px 14px 8px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.record-guard--alert {
+  color: #b45309;
+}
+
+[data-theme="dark"] .record-guard--alert {
+  color: #fbbf24;
 }
 
 .scroller {
