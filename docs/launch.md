@@ -128,3 +128,7 @@ npm run dev
 - If summary does not generate, check `SUMMARY_PROVIDER` and keys in `diarization-service/.env` (`OPENAI_API_KEY` for OpenAI, `VOLC_ARK_API_KEY` for `volc_ark`).
 - If transcript fails, check Volc env variables and backend logs. Match `VOLC_RESOURCE_ID` to the product enabled in your Volc console (often `volc.bigasr.sauc.duration` for the async big-model stream).
 - Keep secrets only in local `.env` files; do not commit real keys.
+
+## 7) Deploy updates to Tencent Cloud
+
+Production site: https://max2ai.top — see **[`deploy-tencent.md`](./deploy-tencent.md)** for SSH, `git pull`, frontend rsync, backend restart, and troubleshooting.

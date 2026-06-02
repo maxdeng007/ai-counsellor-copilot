@@ -141,6 +141,8 @@ Typical patterns:
 1. **Split:** Static frontend on **Vercel** (or any static host) + FastAPI on **Render**, **Railway**, **Fly.io**, or a **VPS** (Tencent / Alibaba ECS, etc.). Point `VITE_DIARIZATION_API_BASE` at the API URL.
 2. **Single VPS:** Nginx serves `dist/` and reverse-proxies `/api` and `/healthz` to Uvicorn on `127.0.0.1:8090`.
 
+**Tencent Cloud (max2ai.top):** step-by-step update commands — backend, frontend, secrets, and troubleshooting — are in **[`docs/deploy-tencent.md`](docs/deploy-tencent.md)**.
+
 Free-tier PaaS APIs may **sleep** when idle (cold start); a small paid VPS stays warm if you need always-on behaviour.
 
 ---
