@@ -23,11 +23,20 @@ DOUBAO_SEED_LITE_EP = "ep-m-20260427181727-ms2s8"
 DOUBAO_SEED_MINI_EP = "ep-m-20260506152356-bdvpg"
 VOLC_ARK_API_KEY = os.getenv("VOLC_ARK_API_KEY", "").strip()
 
+# Xiaomi MiMo — OpenAI-compatible Chat Completions (Token Plan or pay-as-you-go).
+MIMO_BASE_URL_DEFAULT = "https://token-plan-cn.xiaomimimo.com/v1"
+MIMO_MODEL_DEFAULT = "mimo-v2.5-pro"
+MIMO_API_KEY = os.getenv("MIMO_API_KEY", "").strip()
+MIMO_BASE_URL = os.getenv("MIMO_BASE_URL", "").strip()
+MIMO_MODEL = os.getenv("MIMO_MODEL", "").strip()
+
 
 def _normalize_summary_provider(raw: str) -> str:
     key = (raw or "openai").strip().lower() or "openai"
     if key in ("volc_ark", "volc", "ark", "doubao", "byte_ark"):
         return "volc_ark"
+    if key in ("xiaomi_mimo", "mimo", "xiaomi", "token_plan", "mimo_token_plan"):
+        return "xiaomi_mimo"
     if key == "openai":
         return "openai"
     _log.warning("Unknown SUMMARY_PROVIDER=%r; falling back to openai", raw)
@@ -50,6 +59,35 @@ def _resolved_volc_ark_model() -> str:
     if tier in ("mini", "seed-mini", "doubao-seed-2.0-mini"):
         return DOUBAO_SEED_MINI_EP
     return DOUBAO_SEED_LITE_EP
+
+
+def _mimo_base_url() -> str:
+    raw = (MIMO_BASE_URL or "").strip() or MIMO_BASE_URL_DEFAULT
+    base = raw.rstrip("/")
+    if base.endswith("/chat/completions"):
+        base = base[: -len("/chat/completions")]
+    return base
+
+
+def _resolved_mimo_model() -> str:
+    explicit = MIMO_MODEL.strip()
+    if explicit:
+        return explicit
+    tier = os.getenv("MIMO_MODEL_TIER", "pro").strip().lower()
+    if tier in ("flash", "lite", "mimo-v2.5", "v2.5"):
+        return "mimo-v2.5"
+    return MIMO_MODEL_DEFAULT
+
+
+def _mimo_openai_client() -> OpenAI:
+    if not MIMO_API_KEY:
+        raise RuntimeError("MIMO_API_KEY is missing")
+    # Token Plan docs use the api-key header (tp-xxxxx); keep Bearer via api_key for SDK compatibility.
+    return OpenAI(
+        api_key=MIMO_API_KEY,
+        base_url=_mimo_base_url(),
+        default_headers={"api-key": MIMO_API_KEY},
+    )
 
 
 def _output_schema() -> Dict[str, Any]:
@@ -188,6 +226,192 @@ def _build_messages(req: SummarizeMeetingRequest) -> List[Dict[str, str]]:
     ]
 
 
+def _normalize_action_items(items: Any) -> List[Dict[str, str]]:
+    actions: List[Dict[str, str]] = []
+    if not isinstance(items, list):
+        return actions
+    for i, item in enumerate(items[:5]):
+        if not isinstance(item, dict):
+            continue
+        actions.append(
+            {
+                "id": str(item.get("id") or item.get("actionId") or f"act-{i + 1}"),
+                "textZh": str(item.get("textZh") or item.get("zh") or item.get("actionZh") or ""),
+                "textEn": str(item.get("textEn") or item.get("en") or item.get("actionEn") or ""),
+                "dueZh": str(item.get("dueZh") or ""),
+                "dueEn": str(item.get("dueEn") or ""),
+            }
+        )
+    return actions
+
+
+def _bilingual_text(block: Any) -> tuple[str, str]:
+    if isinstance(block, dict):
+        zh = str(block.get("zh") or block.get("summaryZh") or block.get("textZh") or "")
+        en = str(block.get("en") or block.get("summaryEn") or block.get("textEn") or "")
+        return zh, en
+    if isinstance(block, str):
+        return block, ""
+    return "", ""
+
+
+def _empty_summary_section(label_zh: str, label_en: str) -> Dict[str, Any]:
+    return {"labelZh": label_zh, "labelEn": label_en, "rowsZh": [], "rowsEn": []}
+
+
+def _empty_risk_section() -> Dict[str, Any]:
+    return {
+        "labelZh": "风险偏好",
+        "labelEn": "Risk Profile",
+        "levelZh": "待评估",
+        "levelEn": "TBD",
+        "targetZh": "",
+        "targetEn": "",
+    }
+
+
+def _coerce_summary_section(value: Any, label_zh: str, label_en: str) -> Dict[str, Any]:
+    section = _empty_summary_section(label_zh, label_en)
+    if value is None:
+        return section
+    if isinstance(value, dict):
+        if value.get("rowsZh") is not None or value.get("rowsEn") is not None:
+            section["labelZh"] = str(value.get("labelZh") or label_zh)
+            section["labelEn"] = str(value.get("labelEn") or label_en)
+            section["rowsZh"] = list(value.get("rowsZh") or [])
+            section["rowsEn"] = list(value.get("rowsEn") or [])
+            return section
+        rows_zh: List[Dict[str, str]] = []
+        rows_en: List[Dict[str, str]] = []
+        for key, raw in value.items():
+            if raw is None or raw == "":
+                continue
+            label = str(key)
+            text = str(raw)
+            rows_zh.append({"k": label, "v": text})
+            rows_en.append({"k": label, "v": text})
+        section["rowsZh"] = rows_zh
+        section["rowsEn"] = rows_en
+        return section
+    if isinstance(value, list):
+        rows_zh = []
+        rows_en = []
+        for item in value:
+            if not isinstance(item, dict):
+                continue
+            k_zh = str(item.get("k") or item.get("typeZh") or item.get("nameZh") or "项目")
+            v_zh = str(item.get("v") or item.get("valueZh") or item.get("amountZh") or item.get("amount") or "")
+            k_en = str(item.get("kEn") or item.get("typeEn") or item.get("nameEn") or k_zh)
+            v_en = str(item.get("vEn") or item.get("valueEn") or item.get("amountEn") or v_zh)
+            if v_zh:
+                rows_zh.append({"k": k_zh, "v": v_zh})
+            if v_en:
+                rows_en.append({"k": k_en, "v": v_en})
+        section["rowsZh"] = rows_zh
+        section["rowsEn"] = rows_en
+    return section
+
+
+def _coerce_risk_section(value: Any) -> Dict[str, Any]:
+    risk = _empty_risk_section()
+    if not isinstance(value, dict):
+        return risk
+    if value.get("levelZh") or value.get("labelZh"):
+        for key in risk.keys():
+            if key in value and value[key] is not None:
+                risk[key] = str(value[key])
+        return risk
+    tolerance = value.get("riskTolerance") or value.get("level") or value.get("tolerance")
+    if tolerance:
+        risk["levelZh"] = str(tolerance)
+        risk["levelEn"] = str(value.get("riskToleranceEn") or value.get("levelEn") or tolerance)
+    target = value.get("target") or value.get("targetZh")
+    if target:
+        risk["targetZh"] = str(target)
+        risk["targetEn"] = str(value.get("targetEn") or target)
+    return risk
+
+
+def _coerce_mimo_actions(value: Any) -> List[Dict[str, str]]:
+    if isinstance(value, list) and value and all(isinstance(item, str) for item in value):
+        return [
+            {
+                "id": f"act-{i + 1}",
+                "textZh": text,
+                "textEn": "",
+                "dueZh": "",
+                "dueEn": "",
+            }
+            for i, text in enumerate(value[:5])
+        ]
+    return _normalize_action_items(value)
+
+
+def _coerce_mimo_summary_dict(parsed: Dict[str, Any]) -> Dict[str, Any]:
+    if not isinstance(parsed, dict):
+        raise RuntimeError("mimo_summary_not_object")
+
+    out: Dict[str, Any] = {}
+    if parsed.get("summaryZh") or parsed.get("summaryEn"):
+        out["summaryZh"] = str(parsed.get("summaryZh") or "")
+        out["summaryEn"] = str(parsed.get("summaryEn") or "")
+    else:
+        for key in ("meetingSummary", "transcriptSummary", "summary"):
+            if key in parsed:
+                zh, en = _bilingual_text(parsed[key])
+                if zh or en:
+                    out["summaryZh"] = zh
+                    out["summaryEn"] = en
+                    break
+
+    profile_source = parsed.get("profile")
+    if profile_source is None and isinstance(parsed.get("clientProfile"), dict):
+        cp = parsed["clientProfile"]
+        zh, en = _bilingual_text(cp)
+        profile_source = cp if not (zh or en) else {"rowsZh": [{"k": "概况", "v": zh}] if zh else [], "rowsEn": [{"k": "Overview", "v": en}] if en else []}
+    out["profile"] = _coerce_summary_section(profile_source, "客户画像", "Client Profile")
+
+    key_facts = parsed.get("keyFacts")
+    if isinstance(key_facts, list):
+        topics_zh: List[str] = []
+        topics_en: List[str] = []
+        extra_rows_zh: List[Dict[str, str]] = []
+        extra_rows_en: List[Dict[str, str]] = []
+        for fact in key_facts:
+            if not isinstance(fact, dict):
+                continue
+            fz = str(fact.get("factZh") or fact.get("zh") or "")
+            fe = str(fact.get("factEn") or fact.get("en") or "")
+            if fz:
+                topics_zh.append(fz)
+                extra_rows_zh.append({"k": "要点", "v": fz})
+            if fe:
+                topics_en.append(fe)
+                extra_rows_en.append({"k": "Point", "v": fe})
+        if topics_zh:
+            out["topicsZh"] = topics_zh
+        if topics_en:
+            out["topicsEn"] = topics_en
+        if extra_rows_zh:
+            out["profile"]["rowsZh"] = list(out["profile"].get("rowsZh") or []) + extra_rows_zh
+        if extra_rows_en:
+            out["profile"]["rowsEn"] = list(out["profile"].get("rowsEn") or []) + extra_rows_en
+
+    out["assets"] = _coerce_summary_section(parsed.get("assets"), "资产盘点", "Asset Snapshot")
+    out["risk"] = _coerce_risk_section(parsed.get("risk"))
+    out["topicsZh"] = list(parsed.get("topicsZh") or out.get("topicsZh") or [])
+    out["topicsEn"] = list(parsed.get("topicsEn") or out.get("topicsEn") or [])
+    out["actions"] = _coerce_mimo_actions(
+        parsed.get("actions") or parsed.get("actionItems") or parsed.get("recommendedActions")
+    )
+    out["emailDraftZh"] = str(parsed.get("emailDraftZh") or "")
+    out["emailDraftEn"] = str(parsed.get("emailDraftEn") or "")
+
+    out.setdefault("summaryZh", "")
+    out.setdefault("summaryEn", "")
+    return out
+
+
 def _chat_summary_json_schema(client: OpenAI, model: str, req: SummarizeMeetingRequest) -> SummaryOutput:
     messages = _build_messages(req)
     schema = _output_schema()
@@ -211,6 +435,29 @@ def _chat_summary_json_schema(client: OpenAI, model: str, req: SummarizeMeetingR
     return SummaryOutput.model_validate(parsed)
 
 
+def _chat_summary_mimo(client: OpenAI, model: str, req: SummarizeMeetingRequest) -> SummaryOutput:
+    messages = _build_messages(req)
+    messages[0]["content"] += (
+        " Output JSON must use top-level keys summaryZh, summaryEn, profile, assets, risk, "
+        "topicsZh, topicsEn, actions, emailDraftZh, emailDraftEn."
+    )
+    response = client.chat.completions.create(
+        model=model,
+        messages=messages,
+        response_format={"type": "json_object"},
+        temperature=0.2,
+    )
+    content = response.choices[0].message.content if response.choices else ""
+    if not content:
+        raise RuntimeError("empty_response_content")
+    parsed = json.loads(content)
+    coerced = _coerce_mimo_summary_dict(parsed)
+    output = SummaryOutput.model_validate(coerced)
+    if not (output.summaryZh.strip() or output.summaryEn.strip()):
+        raise RuntimeError("mimo_empty_summary")
+    return output
+
+
 def summarize_with_openai(req: SummarizeMeetingRequest) -> SummaryOutput:
     if not OPENAI_API_KEY:
         raise RuntimeError("OPENAI_API_KEY is missing")
@@ -230,6 +477,12 @@ def summarize_with_volc_ark(req: SummarizeMeetingRequest) -> SummaryOutput:
     return _chat_summary_json_schema(client, model, req)
 
 
+def summarize_with_xiaomi_mimo(req: SummarizeMeetingRequest) -> SummaryOutput:
+    client = _mimo_openai_client()
+    model = _resolved_mimo_model()
+    return _chat_summary_mimo(client, model, req)
+
+
 def summarize_meeting(req: SummarizeMeetingRequest) -> Dict[str, Any]:
     provider = _normalize_summary_provider(SUMMARY_PROVIDER)
     try:
@@ -239,6 +492,14 @@ def summarize_meeting(req: SummarizeMeetingRequest) -> Dict[str, Any]:
                 "ok": True,
                 "degraded": False,
                 "provider": "volc_ark",
+                "aiOutput": output,
+            }
+        if provider == "xiaomi_mimo":
+            output = summarize_with_xiaomi_mimo(req)
+            return {
+                "ok": True,
+                "degraded": False,
+                "provider": "xiaomi_mimo",
                 "aiOutput": output,
             }
         output = summarize_with_openai(req)
