@@ -330,6 +330,17 @@ const recordLabels = computed(() => ({
   processing: props.locale === 'zh' ? '终稿处理中' : 'Finalizing',
 }))
 
+const recordGuardMessage = computed(() => {
+  if (recordingInterrupted.value) {
+    return props.locale === 'zh'
+      ? '录音可能已中断：请保持本页面在前台并亮屏，息屏或切换应用会停止采集。'
+      : 'Recording may have paused: keep this page open and the screen on—locking or switching apps stops capture.'
+  }
+  return props.locale === 'zh'
+    ? '录音中：请保持屏幕常亮，勿锁屏或切换到其他应用。'
+    : 'Recording: keep the screen on—do not lock the phone or switch apps.'
+})
+
 const captionLabels = computed(() => ({
   liveTag:
     pendingChunks.value > 0
@@ -2114,31 +2125,6 @@ onBeforeUnmount(() => {
       </div>
 
       <div
-        v-if="flowState === 'recording'"
-        class="record-guard"
-        :class="{ 'record-guard--alert': recordingInterrupted }"
-        role="status"
-        aria-live="polite"
-      >
-        <span class="record-guard__text">
-          <template v-if="recordingInterrupted">
-            {{
-              props.locale === 'zh'
-                ? '录音可能已中断：请保持本页面在前台并亮屏，息屏或切换应用会停止采集。'
-                : 'Recording may have paused: keep this page open and the screen on—locking or switching apps stops capture.'
-            }}
-          </template>
-          <template v-else>
-            {{
-              props.locale === 'zh'
-                ? '录音中：请保持屏幕常亮，勿锁屏或切换到其他应用。'
-                : 'Recording: keep the screen on—do not lock the phone or switch apps.'
-            }}
-          </template>
-        </span>
-      </div>
-
-      <div
         ref="transcriptScrollerEl"
         class="scroller"
         :class="{
@@ -2207,6 +2193,17 @@ onBeforeUnmount(() => {
           :labels="captionLabels"
           pipeline-hint=""
         />
+      </div>
+
+      <div
+        v-if="flowState === 'recording'"
+        class="record-guard"
+        :class="{ 'record-guard--alert': recordingInterrupted }"
+        role="status"
+        aria-live="polite"
+      >
+        <Icon name="info-o" size="14" class="record-guard__icon" aria-hidden="true" />
+        <span class="record-guard__text">{{ recordGuardMessage }}</span>
       </div>
 
       <RecordButton
@@ -2624,17 +2621,40 @@ onBeforeUnmount(() => {
 }
 
 .record-guard {
-  margin: 8px 14px 8px;
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  line-height: 1.4;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 12px 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--color-warning-soft);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 24%, transparent);
+  color: var(--color-warning-text);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.record-guard__icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  opacity: 0.9;
+}
+
+.record-guard__text {
+  flex: 1;
+  min-width: 0;
 }
 
 .record-guard--alert {
+  background: color-mix(in srgb, #f59e0b 14%, var(--color-surface));
+  border-color: color-mix(in srgb, #f59e0b 35%, transparent);
   color: #b45309;
+  font-weight: 600;
 }
 
 [data-theme="dark"] .record-guard--alert {
+  background: color-mix(in srgb, #fbbf24 12%, var(--color-surface));
+  border-color: color-mix(in srgb, #fbbf24 30%, transparent);
   color: #fbbf24;
 }
 
@@ -2905,6 +2925,10 @@ onBeforeUnmount(() => {
     min-height: 200px;
     max-height: 48vh;
     padding: 12px 10px 10px;
+  }
+  .record-guard {
+    margin: 0 10px 8px;
+    font-size: 13px;
   }
   .empty-hint__arrow {
     width: 12px;
