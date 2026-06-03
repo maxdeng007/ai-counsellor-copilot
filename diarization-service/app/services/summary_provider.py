@@ -5,6 +5,7 @@ import logging
 import os
 from typing import Any, Dict, List
 
+import httpx
 from openai import OpenAI
 
 from app.schemas.summary_schema import SummarizeMeetingRequest, SummaryOutput
@@ -29,6 +30,11 @@ MIMO_MODEL_DEFAULT = "mimo-v2.5-pro"
 MIMO_API_KEY = os.getenv("MIMO_API_KEY", "").strip()
 MIMO_BASE_URL = os.getenv("MIMO_BASE_URL", "").strip()
 MIMO_MODEL = os.getenv("MIMO_MODEL", "").strip()
+
+
+def _openai_http_client() -> httpx.Client:
+    # macOS/VPN often sets a system proxy that breaks LLM/ASR HTTP clients (502 via SDK).
+    return httpx.Client(trust_env=False, timeout=120.0)
 
 
 def _normalize_summary_provider(raw: str) -> str:
@@ -87,6 +93,7 @@ def _mimo_openai_client() -> OpenAI:
         api_key=MIMO_API_KEY,
         base_url=_mimo_base_url(),
         default_headers={"api-key": MIMO_API_KEY},
+        http_client=_openai_http_client(),
     )
 
 
@@ -465,6 +472,7 @@ def summarize_with_openai(req: SummarizeMeetingRequest) -> SummaryOutput:
     client_kwargs: Dict[str, Any] = {"api_key": OPENAI_API_KEY}
     if OPENAI_BASE_URL:
         client_kwargs["base_url"] = OPENAI_BASE_URL.rstrip("/")
+    client_kwargs["http_client"] = _openai_http_client()
     client = OpenAI(**client_kwargs)
     return _chat_summary_json_schema(client, SUMMARY_MODEL, req)
 
@@ -472,7 +480,11 @@ def summarize_with_openai(req: SummarizeMeetingRequest) -> SummaryOutput:
 def summarize_with_volc_ark(req: SummarizeMeetingRequest) -> SummaryOutput:
     if not VOLC_ARK_API_KEY:
         raise RuntimeError("VOLC_ARK_API_KEY is missing")
-    client = OpenAI(api_key=VOLC_ARK_API_KEY, base_url=_volc_ark_base_url())
+    client = OpenAI(
+        api_key=VOLC_ARK_API_KEY,
+        base_url=_volc_ark_base_url(),
+        http_client=_openai_http_client(),
+    )
     model = _resolved_volc_ark_model()
     return _chat_summary_json_schema(client, model, req)
 

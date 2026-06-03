@@ -21,7 +21,7 @@ A **Vue 3** web app for **AI-assisted financial counselling meetings**: live or 
 
 **Secrets:** Never commit real keys. Use `.env.local` (frontend) and `diarization-service/.env` (backend). Both are gitignored.
 
-**Editions:** Branch **`main`** (this branch) is the personal / demo line (MiMo summaries, Tencent deploy). Company / internal use lives on **`business-edition`** with a separate gateway `.env` — run `git checkout business-edition` and read `docs/business-edition.md` there. Do not mix keys between branches.
+**Company edition:** Sibling project [`AI-record-biz`](../AI-record-biz) (separate repo) — colleagues and company AI gateway; not part of this tree.
 
 ---
 

@@ -21,7 +21,7 @@ session-level voiceprint linking.
 - `VOLC_APP_ID`, `VOLC_ACCESS_TOKEN`, `VOLC_SECRET_KEY`
 - `VOLC_RESOURCE_ID` (default `volc.seedasr.sauc.duration`)
 - `VOLC_WS_URL` (default `wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_async`)
-- Summary: `SUMMARY_PROVIDER` (`openai` or `volc_ark`), plus keys in `.env.example`
+- Summary: `SUMMARY_PROVIDER` (`xiaomi_mimo`, `openai`, or `volc_ark`) — see `.env.example` (personal default: MiMo)
 - Voiceprint tuning vars in `app/services/voiceprint_service.py` (optional)
 
 ## Local run
