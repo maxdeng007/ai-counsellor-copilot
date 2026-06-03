@@ -1,4 +1,38 @@
-# Milestone · Live transcript core (multi-segment MVP)
+# Milestones · AI Record (personal edition)
+
+This repo (**`AI-record`**) is the **personal / monetization** product line only. Company / internal work lives in the sibling project **`AI-record-biz`** (separate folder, separate git history, no merges).
+
+---
+
+## 2026-06 · Personal vs company split
+
+_Two products from one codebase snapshot; independent paths forever._
+
+### What changed
+
+| Track | Location | Audience | Summary LLM | Deploy |
+|-------|----------|----------|-------------|--------|
+| **Personal** (this repo) | `AI-record` → GitHub `main` | You, public demo, monetization | **Xiaomi MiMo** (`xiaomi_mimo`) | Tencent **max2ai.top** — [`docs/deploy-tencent.md`](docs/deploy-tencent.md) |
+| **Company** | `AI-record-biz` (local; GitHub TBD) | Colleagues, internal | **Company AI gateway** (`openai` / `volc_ark`) | Internal / company infra |
+
+- Removed git branch **`business-edition`** from this repo; business code/docs live only under **`AI-record-biz`**.
+- Personal **`main`** pushed to GitHub; secrets stay in local **`.env`** / **`.env.local`** (never committed).
+- Safety tags: **`personal-pre-biz-split`**, **`business-pre-split`** (on old branch tip), **`v1.0-archetype`**.
+
+### Personal stack notes
+
+- Backend template: MiMo block in [`diarization-service/.env.example`](diarization-service/.env.example).
+- LLM clients use **`httpx.Client(trust_env=False)`** so VPN/system proxy does not break Volc/MiMo HTTP calls.
+- Restore point for MiMo env: **`diarization-service/.env.personal.mimo.backup`** (local, gitignored).
+
+### Explicit non-goals
+
+- No `business-edition` branch, no company gateway docs, no colleague onboarding in this tree.
+- No automatic sync with **`AI-record-biz`** — port fixes manually only if you choose.
+
+---
+
+## Live transcript core (multi-segment MVP)
 
 _A polished in-app recording experience: keep the conversation thread, stabilize speakers across takes, and stay focused on what’s streaming._
 
