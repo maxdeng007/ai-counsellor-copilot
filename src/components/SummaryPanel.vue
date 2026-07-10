@@ -8,6 +8,10 @@ const props = defineProps({
   locale: { type: String, default: 'zh' },
   labels: { type: Object, required: true },
   generatedAt: { type: Number, default: 0 },
+  /** True when the backend returned a placeholder fallback (LLM call failed). */
+  degraded: { type: Boolean, default: false },
+  /** Backend-provided error string (only meaningful when degraded is true). */
+  degradedMessage: { type: String, default: '' },
 })
 
 const taskCreated = reactive({})
@@ -124,6 +128,34 @@ async function copyEmail() {
       </div>
       <div v-if="generatedMeta" class="summary-meta">{{ generatedMeta }}</div>
     </header>
+
+    <div
+      v-if="isReady && degraded"
+      class="degraded-banner"
+      role="status"
+      aria-live="polite"
+    >
+      <Icon name="warning-o" size="14" class="degraded-banner__icon" />
+      <div class="degraded-banner__body">
+        <div class="degraded-banner__title">
+          {{
+            locale === 'zh'
+              ? 'AI 分析暂不可用 · 当前为占位纪要'
+              : 'AI analysis unavailable · placeholder summary'
+          }}
+        </div>
+        <div v-if="degradedMessage" class="degraded-banner__detail">
+          {{ degradedMessage }}
+        </div>
+        <div class="degraded-banner__hint">
+          {{
+            locale === 'zh'
+              ? '请检查后端 SUMMARY_PROVIDER / API Key 配置后重新分析。'
+              : 'Check backend SUMMARY_PROVIDER / API key, then retry analysis.'
+          }}
+        </div>
+      </div>
+    </div>
 
     <transition name="fade" mode="out-in">
       <!-- ───────── Collapsed (waiting for stop) ───────── -->
@@ -280,6 +312,65 @@ async function copyEmail() {
   background: var(--color-card-bg);
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-card);
+}
+
+.degraded-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, #f59e0b 12%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, #f59e0b 35%, transparent);
+  color: #b45309;
+}
+
+[data-theme="dark"] .degraded-banner {
+  background: color-mix(in srgb, #fbbf24 10%, var(--color-surface));
+  border-color: color-mix(in srgb, #fbbf24 28%, transparent);
+  color: #fbbf24;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .degraded-banner {
+    background: color-mix(in srgb, #fbbf24 10%, var(--color-surface));
+    border-color: color-mix(in srgb, #fbbf24 28%, transparent);
+    color: #fbbf24;
+  }
+}
+
+.degraded-banner__icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.degraded-banner__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.degraded-banner__title {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.degraded-banner__detail {
+  margin-top: 4px;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.5;
+  word-break: break-word;
+  opacity: 0.85;
+}
+
+.degraded-banner__hint {
+  margin-top: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.5;
+  opacity: 0.7;
 }
 
 .summary-header {

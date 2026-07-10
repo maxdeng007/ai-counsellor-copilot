@@ -7,6 +7,7 @@ from typing import Any, Dict, List
 
 import httpx
 from openai import OpenAI
+from pydantic import ValidationError
 
 from app.schemas.summary_schema import SummarizeMeetingRequest, SummaryOutput
 from app.services.entity_extractor import transcript_to_prompt_lines
@@ -225,8 +226,19 @@ def _build_messages(req: SummarizeMeetingRequest) -> List[Dict[str, str]]:
             "role": "system",
             "content": (
                 "You are a financial counsellor meeting assistant. "
-                "Return strict JSON only. No markdown. "
-                "Use transcript facts only, do not hallucinate numbers."
+                "Return strict JSON only. No markdown, no prose, no code fences.\n\n"
+                "You MUST return ALL of these fields, even when empty or 'N/A':\n"
+                "- summaryZh, summaryEn (string)\n"
+                "- profile {labelZh, labelEn, rowsZh[], rowsEn[]} with each row being {k, v}\n"
+                "- assets {labelZh, labelEn, rowsZh[], rowsEn[]} with each row being {k, v}\n"
+                "- risk {labelZh, labelEn, levelZh, levelEn, targetZh, targetEn}\n"
+                "- topicsZh[], topicsEn[]\n"
+                "- actions[] where each item is {id, textZh, textEn, dueZh, dueEn}. "
+                "Set `id` to act-1, act-2, ... act-5. Use empty string '' for missing due dates.\n"
+                "- emailDraftZh, emailDraftEn (string)\n\n"
+                "Use only facts from the transcript. Do NOT invent numbers, names, or "
+                "dates. If a section has no data, use '' or []. Fill bilingual pairs for "
+                "every value where the locale is bilingual (zh + en)."
             ),
         },
         {"role": "user", "content": json.dumps(user_prompt, ensure_ascii=False)},
@@ -240,11 +252,32 @@ def _normalize_action_items(items: Any) -> List[Dict[str, str]]:
     for i, item in enumerate(items[:5]):
         if not isinstance(item, dict):
             continue
+        # Free-tier models (gpt-oss-20b, qwen3-next-80b) sometimes use a
+        # title/description shape instead of id/textZh/textEn. Combine them
+        # into the single textZh/textEn fields the schema requires.
+        title_zh = item.get("titleZh") or item.get("title") or ""
+        title_en = item.get("titleEn") or ""
+        desc_zh = item.get("descriptionZh") or item.get("description") or ""
+        desc_en = item.get("descriptionEn") or ""
+        combined_zh = f"{title_zh}：{desc_zh}".strip("： ").strip()
+        combined_en = f"{title_en}: {desc_en}".strip(": ").strip()
         actions.append(
             {
                 "id": str(item.get("id") or item.get("actionId") or f"act-{i + 1}"),
-                "textZh": str(item.get("textZh") or item.get("zh") or item.get("actionZh") or ""),
-                "textEn": str(item.get("textEn") or item.get("en") or item.get("actionEn") or ""),
+                "textZh": str(
+                    item.get("textZh")
+                    or item.get("zh")
+                    or item.get("actionZh")
+                    or combined_zh
+                    or ""
+                ),
+                "textEn": str(
+                    item.get("textEn")
+                    or item.get("en")
+                    or item.get("actionEn")
+                    or combined_en
+                    or ""
+                ),
                 "dueZh": str(item.get("dueZh") or ""),
                 "dueEn": str(item.get("dueEn") or ""),
             }
@@ -439,7 +472,16 @@ def _chat_summary_json_schema(client: OpenAI, model: str, req: SummarizeMeetingR
     if not content:
         raise RuntimeError("empty_response_content")
     parsed = json.loads(content)
-    return SummaryOutput.model_validate(parsed)
+    # Some free-tier models (e.g. gpt-oss-20b:free, qwen3-next-80b-a3b:free)
+    # return actions shaped as {"zh": "...", "en": "..."} or omit the required
+    # `id` field even when strict=True is set. Run the same lenient coercion
+    # path used for Xiaomi MiMo so we accept either shape, then fall back to
+    # strict validation only if coercion produces nothing usable.
+    try:
+        coerced = _coerce_mimo_summary_dict(parsed)
+        return SummaryOutput.model_validate(coerced)
+    except (ValidationError, RuntimeError, ValueError):
+        return SummaryOutput.model_validate(parsed)
 
 
 def _chat_summary_mimo(client: OpenAI, model: str, req: SummarizeMeetingRequest) -> SummaryOutput:

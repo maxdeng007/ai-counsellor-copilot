@@ -226,6 +226,10 @@ const extractedClient = ref(null)
 const linkedClient = ref(null)
 const aiOutput = ref(null)
 const summaryGeneratedAt = ref(0)
+/** True when the backend returned a degraded/fallback summary (LLM call failed). */
+const summaryDegraded = ref(false)
+/** Backend-provided error string when summaryDegraded is true, for the toast/banner. */
+const summaryError = ref('')
 const currentMeetingId = ref('')
 const availableClients = ref([...MOCK_CLIENTS])
 /** Scroll container for transcript + live caption; kept pinned to bottom while capturing. */
@@ -640,6 +644,8 @@ async function persistMeetingState(status, extra = {}) {
     transcript: buildFinalizedTranscript(),
     linkedClient: linkedClient.value,
     aiOutput: aiOutput.value,
+    summaryDegraded: summaryDegraded.value,
+    summaryError: summaryError.value,
     ...extra,
   }
   const saved = await meetingRepo.save(payload)
@@ -721,24 +727,40 @@ async function onLinked(payload) {
     }
     const result = await summarizeMeeting(req)
     aiOutput.value = result?.aiOutput || null
+    summaryDegraded.value = Boolean(result?.degraded)
+    summaryError.value = String(result?.error || '')
     summaryGeneratedAt.value = Date.now()
     flowState.value = 'summarized'
+    if (summaryDegraded.value) {
+      showToast({
+        message:
+          props.locale === 'zh'
+            ? 'AI 分析暂不可用，已展示占位纪要'
+            : 'AI analysis unavailable — showing placeholder summary',
+        icon: 'warning-o',
+        className: 'save-notes-toast',
+        position: 'middle',
+        duration: 2200,
+      })
+    }
     try {
       await persistMeetingState('summarized')
     } catch {
       // Ignore local persistence errors in demo/dev mode.
     }
   } catch (error) {
+    summaryDegraded.value = true
+    summaryError.value = String(error?.message || '')
     flowState.value = 'reviewing'
     showToast({
       message:
         props.locale === 'zh'
-          ? 'AI 总结暂时不可用，请稍后重试'
+          ? `AI 总结失败：${summaryError.value || '请稍后重试'}`
           : error?.message || 'AI summary is temporarily unavailable',
       icon: 'cross',
       className: 'save-notes-toast',
       position: 'middle',
-      duration: 1800,
+      duration: 2200,
     })
   }
 }
@@ -749,6 +771,8 @@ function hydrateFromRecord(record) {
   linkedClient.value = record.linkedClient || null
   aiOutput.value = record.aiOutput || null
   summaryGeneratedAt.value = Number(record.updatedAt || 0)
+  summaryDegraded.value = Boolean(record?.summaryDegraded)
+  summaryError.value = String(record?.summaryError || '')
   transcriptText.value = ''
   bubbles.value = []
   Object.keys(speakers).forEach((k) => delete speakers[k])
@@ -1862,6 +1886,8 @@ async function startLive() {
     linkedClient.value = null
     aiOutput.value = null
     summaryGeneratedAt.value = 0
+    summaryDegraded.value = false
+    summaryError.value = ''
     currentMeetingId.value = ''
   }
   resetSession(preserveConversation)
@@ -2044,7 +2070,15 @@ void clientRepo
   })
   .catch(() => {})
 
-void restoreLatestMeetingIfAny()
+// Intentionally NOT auto-restoring the latest meeting on mount. Auto-restore
+// made a fresh page load silently inherit a stale bubble + summary panel
+// (e.g. "理财顾问 ... 张先生 ... 心情" plus "AI 智能纪要 刚刚生成 · 15:56 ...")
+// that were saved during a previous session. The page should start in
+// `flowState === 'idle'` and surface the empty hint until the user explicitly
+// records or resumes a meeting. To opt back in (e.g. from a future history
+// page or a "Resume last meeting" button), call `restoreLatestMeetingIfAny()`
+// from a user-driven action instead.
+void restoreLatestMeetingIfAny
 
 watch(
   () => props.locale,
@@ -2236,6 +2270,8 @@ onBeforeUnmount(() => {
         :locale="props.locale"
         :labels="summaryLabels"
         :generated-at="summaryGeneratedAt"
+        :degraded="summaryDegraded"
+        :degraded-message="summaryError"
       />
     </div>
 
